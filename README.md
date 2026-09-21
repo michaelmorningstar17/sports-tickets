@@ -5,13 +5,23 @@ when prices bottom out per seat tier and spot underpriced listings. Currently
 configured for Seattle Kraken games; any Gametime performer works via
 `PERFORMER_SLUG`.
 
-Every 6 hours a GitHub Action:
+A GitHub Action wakes every 15 minutes; per event, the collector decides
+from the database whether a snapshot is due, tightening as the game nears:
 
-1. Pulls the full Kraken schedule from Gametime's mobile API and records each
-   game's minimum price (`event_stats`), the cheap long-horizon curve.
-2. For home games within 30 days, records every individual listing
-   (`listing_snapshots`): section, row, quantities, pre-fee and all-in price,
-   Gametime's `deal_score`, and the implied fair value `V = price / score`.
+| Time until game     | Snapshot interval |
+|---------------------|-------------------|
+| more than 7 days    | daily             |
+| 7 days to 24 hours  | twice daily       |
+| 24 hours to 4 hours | hourly            |
+| 4 hours to T+30 min | every run (~15m)  |
+
+Each run also refreshes the schedule, upserts `events`, records a daily
+min-price row per game (`event_stats`), and for due home games records every
+individual listing (`listing_snapshots`): section, row, quantities, pre-fee
+and all-in price, Gametime's `deal_score`, and the implied fair value
+`V = price / score`. Due-ness is computed from each event's last snapshot in
+the database, so cron jitter delays a snapshot slightly but never skips or
+doubles one.
 
 ## One-time setup (manual steps)
 

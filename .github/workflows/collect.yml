@@ -2,7 +2,8 @@ name: collect-snapshots
 
 on:
   schedule:
-    - cron: "17 0,6,12,18 * * *"   # every 6 hours (UTC), offset from :00 rush
+    - cron: "*/15 * * * *"   # wake every 15 min; collector.py decides per
+                             # event whether a snapshot is due (see CADENCE)
   workflow_dispatch:
 
 concurrency:
