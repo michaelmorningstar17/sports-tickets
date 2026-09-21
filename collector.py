@@ -126,6 +126,7 @@ def fetch_listings(event_id):
             "value_cents": round(total / score) if score > 0 else None,
             "source": l.get("source"),
             "delivery_type": l.get("delivery_type"),
+            "seats": "/".join(l.get("seats") or []) or None,
         })
     return rows
 
@@ -211,13 +212,17 @@ def write_db(conn, now, events, listings_by_event, stats_due_ids):
             (event_id, now, l["listing_id"], l["section_group"],
              l["section"], l["row"], l["lots"], l["price_prefee_cents"],
              l["price_total_cents"], l["deal_score"], l["value_cents"],
-             l["source"], l["delivery_type"])
+             l["source"], l["delivery_type"], l["seats"])
             for event_id, listings in listings_by_event.items()
             for l in listings]
         if listing_rows:
             cur.executemany(
-                """INSERT INTO listing_snapshots VALUES
-                   (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                """INSERT INTO listing_snapshots
+                   (event_id, captured_at, listing_id, section_group,
+                    section, row, lots, price_prefee_cents,
+                    price_total_cents, deal_score, value_cents, source,
+                    delivery_type, seats)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                    ON CONFLICT DO NOTHING""", listing_rows)
     conn.commit()
 
