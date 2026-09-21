@@ -43,8 +43,9 @@ CREATE TABLE IF NOT EXISTS listing_snapshots (
     PRIMARY KEY (listing_id, captured_at)
 );
 
--- Seat numbers when Gametime exposes them (often masked as '*'); needed to
+-- Seat numbers when Gametime exposes them (often masked as '*'), needed to
 -- detect adjacent single-seat listings for pairing analysis.
+-- NOTE: comments here must not contain semicolons (see apply_schema).
 ALTER TABLE listing_snapshots ADD COLUMN IF NOT EXISTS seats TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_listing_snapshots_event
