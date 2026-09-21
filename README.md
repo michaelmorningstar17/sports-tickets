@@ -1,7 +1,9 @@
-# kraken-tickets
+# sports-tickets
 
-Tracks Gametime ticket listings for Seattle Kraken games over time, so we can
-learn when prices bottom out per seat tier and spot underpriced listings.
+Tracks Gametime ticket listings for sports events over time, so we can learn
+when prices bottom out per seat tier and spot underpriced listings. Currently
+configured for Seattle Kraken games; any Gametime performer works via
+`PERFORMER_SLUG`.
 
 Every 6 hours a GitHub Action:
 
