@@ -112,7 +112,13 @@ def collect(now):
 def write_db(now, events, listings_by_event):
     import psycopg
     schema = (Path(__file__).parent / "schema.sql").read_text()
-    with psycopg.connect(os.environ["DATABASE_URL"]) as conn:
+    # Tolerate common paste artifacts in the secret: surrounding quotes
+    # or a full "DATABASE_URL=..." line copied from an env file.
+    dsn = os.environ["DATABASE_URL"].strip()
+    if dsn.startswith("DATABASE_URL="):
+        dsn = dsn.split("=", 1)[1].strip()
+    dsn = dsn.strip("'\"")
+    with psycopg.connect(dsn) as conn:
         with conn.cursor() as cur:
             for statement in schema.split(";"):
                 if statement.strip():
