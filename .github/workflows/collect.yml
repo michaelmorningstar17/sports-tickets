@@ -26,6 +26,9 @@ jobs:
       - name: Run collector
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # League-wide endgame research window (hours before start).
+          # Temporary for floor-timing calibration; set to 0 to disable.
+          EXTRA_NHL_HOURS: "8"
         run: python collector.py
 
       # GitHub disables cron workflows in repos with no activity for 60 days.
