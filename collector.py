@@ -109,16 +109,24 @@ def collect(now):
     return events, listings_by_event, failures
 
 
+def clean_dsn(raw):
+    """Rebuild the connection URL from the secret, neutralizing paste
+    artifacts: quotes, an env-file prefix, stray whitespace/newlines,
+    and malformed query parameters."""
+    import re
+    m = re.search(r"postgres(?:ql)?://[^\s'\"]+", raw)
+    if not m:
+        raise ValueError("DATABASE_URL secret does not contain a postgres:// URL")
+    url = m.group(0)
+    base, _, query = url.partition("?")
+    params = [p for p in query.split("&") if p.count("=") == 1 and p.strip()]
+    return base + ("?" + "&".join(params) if params else "")
+
+
 def write_db(now, events, listings_by_event):
     import psycopg
     schema = (Path(__file__).parent / "schema.sql").read_text()
-    # Tolerate common paste artifacts in the secret: surrounding quotes
-    # or a full "DATABASE_URL=..." line copied from an env file.
-    dsn = os.environ["DATABASE_URL"].strip()
-    if dsn.startswith("DATABASE_URL="):
-        dsn = dsn.split("=", 1)[1].strip()
-    dsn = dsn.strip("'\"")
-    with psycopg.connect(dsn) as conn:
+    with psycopg.connect(clean_dsn(os.environ["DATABASE_URL"])) as conn:
         with conn.cursor() as cur:
             for statement in schema.split(";"):
                 if statement.strip():
