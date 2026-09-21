@@ -8,23 +8,24 @@ every 15 minutes; per-event due-ness is decided from the database
 (time since that event's last snapshot), so GitHub cron jitter can
 delay a snapshot slightly but never skip or double one.
 
-Cadence (time until game start -> snapshot interval):
-    more than 7 days        daily
-    7 days to 24 hours      twice daily
-    24 hours to 4 hours     hourly
-    4 hours to T+30 min     every run (~15 min)
-    after T+30 min          stop (sales cut off shortly after start)
+Snapshots follow a grid anchored at each game's start time (start minus
+k * interval), so one snapshot of every tier lands exactly at time-of-game:
+
+    schedule appearance to T-7d    daily
+    T-7d to T-24h                  every 6 hours
+    T-24h to T-6h                  hourly
+    T-6h to T+30min                every 15 minutes
+    after T+30min                  stop (sales cut off shortly after start)
 
 Usage:
     DATABASE_URL=postgres://... python3 collector.py
-    python3 collector.py --dry-run     # no database; collects everything
-                                       # in horizon and prints a summary
+    python3 collector.py --dry-run     # no database, no writes; prints the
+                                       # schedule and per-event grid status
 
 Config (env vars):
     DATABASE_URL     Postgres connection string (required unless --dry-run)
     PERFORMER_SLUG   Gametime performer slug        (default: nhlsea)
     HOME_ONLY        snapshot listings for home games only (default: true)
-    HORIZON_DAYS     listing-snapshot window in days       (default: 30)
 """
 
 import json
@@ -44,14 +45,14 @@ HOME_ONLY = os.environ.get("HOME_ONLY", "true").lower() != "false"
 HORIZON_DAYS = int(os.environ.get("HORIZON_DAYS", "30"))
 REQUEST_PAUSE_SECS = 1.5
 
-# (game is at most this far away, snapshot interval). Intervals sit a few
-# minutes under the nominal tier so a jittery cron run just past the
-# boundary still collects instead of waiting a whole extra cycle.
+# Snapshot grid, anchored at game start so one snapshot of every tier lands
+# exactly at time-of-game: (game is at most this far away, grid interval).
+# Intervals nest (15m | 1h | 6h | 24h), so tier transitions share grid points.
 CADENCE = [
-    (timedelta(hours=4), timedelta(minutes=13)),
-    (timedelta(hours=24), timedelta(minutes=55)),
-    (timedelta(days=7), timedelta(hours=11, minutes=30)),
-    (timedelta(days=HORIZON_DAYS), timedelta(hours=23)),
+    (timedelta(hours=6), timedelta(minutes=15)),
+    (timedelta(hours=24), timedelta(hours=1)),
+    (timedelta(days=7), timedelta(hours=6)),
+    (None, timedelta(hours=24)),   # daily from schedule appearance to T-7d
 ]
 POST_START_GRACE = timedelta(minutes=30)
 STATS_INTERVAL = timedelta(hours=23)   # schedule-wide min-price curve: daily
@@ -111,24 +112,35 @@ def fetch_listings(event_id):
     return rows
 
 
-def required_interval(time_until_start):
-    """Snapshot interval for a game this far away, or None if out of scope."""
+def grid_interval(time_until_start):
+    """Grid interval for a game this far away, or None if out of scope."""
     if time_until_start < -POST_START_GRACE:
         return None
     for horizon, interval in CADENCE:
-        if time_until_start <= horizon:
+        if horizon is None or time_until_start <= horizon:
             return interval
     return None
+
+
+def last_grid_point(start, now):
+    """Most recent scheduled snapshot time (start - k*interval) at or
+    before now, or None if the game is out of scope."""
+    import math
+    interval = grid_interval(start - now)
+    if interval is None:
+        return None
+    k = math.ceil((start - now) / interval)
+    return start - k * interval
 
 
 def listings_due(event, now, last_snapshot):
     if HOME_ONLY and not event["is_home"]:
         return False
-    interval = required_interval(event["start"] - now)
-    if interval is None:
+    grid_point = last_grid_point(event["start"], now)
+    if grid_point is None:
         return False
     last = last_snapshot.get(event["event_id"])
-    return last is None or now - last >= interval
+    return last is None or last < grid_point
 
 
 def clean_dsn(raw):
@@ -206,13 +218,21 @@ def main():
     events = fetch_schedule()
 
     if dry_run:
-        conn = None
-        last_snapshot, last_stats = {}, {}
-    else:
-        import psycopg
-        conn = psycopg.connect(clean_dsn(os.environ["DATABASE_URL"]))
-        apply_schema(conn)
-        last_snapshot, last_stats = load_last_times(conn)
+        for e in events:
+            if HOME_ONLY and not e["is_home"]:
+                continue
+            gp = last_grid_point(e["start"], now)
+            iv = grid_interval(e["start"] - now)
+            print(f"  {e['datetime_local'][:16]} {e['name'][:45]:45s} "
+                  f"interval {iv}, last grid point "
+                  f"{gp:%Y-%m-%d %H:%M}Z" if gp else
+                  f"  {e['datetime_local'][:16]} {e['name'][:45]:45s} out of scope")
+        return
+
+    import psycopg
+    conn = psycopg.connect(clean_dsn(os.environ["DATABASE_URL"]))
+    apply_schema(conn)
+    last_snapshot, last_stats = load_last_times(conn)
 
     targets = [e for e in events if listings_due(e, now, last_snapshot)]
     stats_due_ids = {
@@ -237,18 +257,9 @@ def main():
     for event_id, name, err in failures:
         print(f"FAILED {event_id} ({name}): {err}", file=sys.stderr)
 
-    if dry_run:
-        for e in targets:
-            ls = listings_by_event.get(e["event_id"], [])
-            floor = min((l["price_total_cents"] for l in ls), default=0)
-            interval = required_interval(e["start"] - now)
-            print(f"  {e['datetime_local'][:16]} {e['name'][:45]:45s} "
-                  f"{len(ls):4d} listings, floor ${floor/100:.0f}, "
-                  f"interval {interval}")
-    else:
-        write_db(conn, now, events, listings_by_event, stats_due_ids)
-        conn.close()
-        print("database write complete")
+    write_db(conn, now, events, listings_by_event, stats_due_ids)
+    conn.close()
+    print("database write complete")
 
     # Fail the run only if every listings fetch failed (endpoint change/block).
     if failures and not listings_by_event:
