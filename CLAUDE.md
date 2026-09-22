@@ -39,3 +39,8 @@ they are. Update both at the end of any session that changes them
 - `lots` = purchasable quantities ("2/4/6"); `seats` usually masked by
   Gametime ('*'), captured when exposed.
 - We observe asks, not transactions; disappearance ≈ sold or delisted.
+- Prices we store are the API's BASE price. Gametime's apps apply a
+  per-user display layer (up to ~9.5%, see `promofee` in listing
+  signatures): Michael's app showed $24 where the API said $22 (2026-09-22).
+  Trends are consistent on our basis, but consumer-facing quotes and any
+  buy-leg profit math should assume display price ≈ base +0-10%.
