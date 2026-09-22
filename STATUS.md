@@ -35,13 +35,19 @@ _Last updated: 2026-09-22 (evening)_
   per-seat fair-value model). Buy signal concept: low score with stable V;
   falling V = market deflating, wait.
 
-## Thursday 9/24 plan (Kraken vs Flames preseason, Michael wants 5 lower-bowl)
+## Thursday 9/24 plan (Kraken vs Flames preseason, Michael wants 5 seats,
+## TRUE Lower only — Loge excluded per Michael 9/22; Loge runs ~25-30%
+## below comparable Lower at every snapshot, the standing value play)
 
-- Profile as of 9/22: deep soft market — 46 lower-bowl listings seat 5-6,
-  cheapest $17/seat (falling). Advice: do NOT buy early; check T-2h..T-1h
-  Thursday (4:40–5:40 PM PT).
-- Tripwires to buy immediately: 5-6-capable count < 20, or cheapest group
-  price rises across two consecutive snapshots.
+- Lower-only profile as of 9/22 eve: floor pinned at $20-22 for 26h (only
+  the median compresses, $52→$41); heavy churn (cheap Lower sells, doesn't
+  sit). ~26 Lower listings seat 5-6; best: Lower 24 row W $22/seat
+  (lots 3-8), Lower 11 row X $23 (6), Lower 17 row Z $25.
+- Waiting is safe but upside has shrunk — Thursday likely ~same price.
+  Plan: check T-2h..T-1h Thursday (4:40–5:40 PM PT); buying earlier at
+  ~$22/seat is defensible if convenience wins.
+- Tripwires to buy immediately: Lower 5-6-capable count < 12, or Lower
+  group floor rises across two consecutive snapshots.
 
 ## Open questions / next steps
 
