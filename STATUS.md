@@ -17,7 +17,20 @@ _Last updated: 2026-09-22 (evening)_
 - Tonight (Tue 9/22): 10 preseason games auto-tracked, first full-resolution
   endgame curves with no manual bridge.
 
-## Findings so far (from Mon 9/21 games, n=7, preseason)
+## Findings from Tue 9/22 games (n=10, FULL 15-min resolution)
+
+- Floor minimum typically lands T-4h..T-1.5h, NOT at puck drop (only 1/10
+  bottomed post-start). Monday's "min at T+20m" was sparse-sampling
+  artifact. After the bottom, floors drift UP as inventory absorbs.
+- Listing counts roughly halve over the final 8h in every game.
+- Groups of 5 in lower tiers: options collapse or reprice up in the final
+  1-3h in 7/9 games (MSG: 8 options T-6h → 0 by T-1h). Only the softest
+  markets let groups wait. GROUP BUY WINDOW = T-6h..T-2h.
+- Quality-at-budget arrives in perishable waves (Kraken sec 21 row J $28
+  appeared overnight 9/21→9/22, bought by Tue noon). Hunt waves, don't
+  time a fixed hour. Gametime's V underweights row depth vs human prefs.
+
+## Findings from Mon 9/21 games (n=7, sparse endgame coverage on 4 East games)
 
 - Three demand regimes, readable in advance from listing depth + median:
   - Soft (deep supply, modest median): floor sags into and past puck drop;
@@ -43,11 +56,13 @@ _Last updated: 2026-09-22 (evening)_
   the median compresses, $52→$41); heavy churn (cheap Lower sells, doesn't
   sit). ~26 Lower listings seat 5-6; best: Lower 24 row W $22/seat
   (lots 3-8), Lower 11 row X $23 (6), Lower 17 row Z $25.
-- Waiting is safe but upside has shrunk — Thursday likely ~same price.
-  Plan: check T-2h..T-1h Thursday (4:40–5:40 PM PT); buying earlier at
-  ~$22/seat is defensible if convenience wins.
-- Tripwires to buy immediately: Lower 5-6-capable count < 12, or Lower
-  group floor rises across two consecutive snapshots.
+- REVISED after Tue full-resolution data: buy Thursday AFTERNOON
+  (~12:40–4:40 PM PT, T-6h..T-2h) — group options collapse in the final
+  1-3h across the league, and floors bottom T-4h..T-1.5h anyway. Watch for
+  a perishable good-row wave (≤ row M under ~$30) during the burst window;
+  fallback Lower 24 row W ($22-24, lots 3-8) if no wave appears by ~4:40 PM.
+- Tripwires to buy immediately (any day): Lower 5-6-capable count < 12, or
+  Lower group floor rises across two consecutive snapshots.
 
 ## Open questions / next steps
 
