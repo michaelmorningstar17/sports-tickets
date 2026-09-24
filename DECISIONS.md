@@ -3,7 +3,7 @@
 Newest first. One line of context, one of why.
 
 - **2026-09-23: Michael bought 6x Lower 22 row J at $33/seat (display) for
-  Kraken-Flames 9/24.** Why: top-1%% stable-regime deal score (0.402), group
+  Kraken-Flames 9/24.** Why: top-1% stable-regime deal score (0.402), group
   tripwire had fired, league data showed group blocks die T-6h..T-2h.
   Open: validate vs tonight's endgame; build pairs timing rule (his usual
   future quantity is 2).
