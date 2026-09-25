@@ -17,6 +17,16 @@ _Last updated: 2026-09-22 (evening)_
 - Tonight (Tue 9/22): 10 preseason games auto-tracked, first full-resolution
   endgame curves with no manual bridge.
 
+## Findings from Kraken-Flames 9/24 endgame (soft market; n 87→57)
+
+- Michael's 6x Lower 22 rJ @ $32 VALIDATED: quality-row 6-blocks never beat
+  $31 after purchase (usually $37-44). Group-quality never goes on sale.
+- Get-in floor CONVERGES across group sizes late: even 6 could enter for
+  $19-20 (back rows) at T-60..T-45m. Quality-row premium DIVERGES by size.
+- Pairs rule v1 (soft games): watch from T-3h, buy on a quality-row wave
+  (a $19 quality pair appeared T-30m), fallback $19-22 back row T-45m.
+  Regular-season recalibration pending.
+
 ## Findings from Tue 9/22 games (n=10, FULL 15-min resolution)
 
 - Floor minimum typically lands T-4h..T-1.5h, NOT at puck drop (only 1/10
