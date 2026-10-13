@@ -172,7 +172,7 @@ def analyze_league(games, meta, now_utc, eids=None):
 
     # 'waiting backfires' risk: by hour h, the block is gone OR >=20% pricier
     # than the same game's T-6h block price. Only games that had a block at T-6h.
-    for f in ('g4', 'g6'):
+    for f in ('g2', 'g4', 'g6'):
         out = []
         for h in HOURS_GRID:
             gone = spike = tot = 0
