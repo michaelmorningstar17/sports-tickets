@@ -12,6 +12,10 @@ _Last updated: 2026-09-22 (evening)_
   Headline risk metric (2026-10-13, per Michael): 'waiting backfires' =
   block gone OR >=20% pricier than the same game's T-6h price. Final-30m
   league values: 4-together 52% (41 spike / 11 gone), 6-together 69%.
+  Arena map section (2026-10-13): per-section price map of Climate Pledge
+  from Gametime spot positions (dashboard/cpa_sections.json, harvested
+  once from live listings), with snapshot replay and best-price-and-when
+  modes, per home game.
 - Storage watch: ~207 MB of 500 MB free tier (Oct 13), ~30 MB/week burn.
   Aggregate-and-prune job still TODO before ~late December.
 

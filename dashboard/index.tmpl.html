@@ -139,6 +139,35 @@ re-cuts the three charts on this page to Kraken home games only.</p>
 <h2>Upper bowl vs Loge vs lower bowl at Climate Pledge</h2>
 <p style="font-size:14.5px;color:var(--mut)" id="tierText"></p>
 
+<h2>The arena, priced over time</h2>
+<div class="chartbox">
+  <p style="font-size:17px;font-weight:600;color:var(--ink);margin:0 0 2px">Where the deals live at Climate Pledge</p>
+  <p style="font-size:13px;color:var(--faint);margin:0 0 12px">Every section, from our snapshots of the
+  resale market. Replay a game&rsquo;s market hour by hour, or see each section&rsquo;s best price and
+  when it appeared.</p>
+  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px;font-size:13.5px;color:var(--mut)">
+    <select id="mapGame" style="font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px"></select>
+    <span class="seg" style="margin:0">
+      <button id="mapModeReplay" class="on">Replay</button>
+      <button id="mapModeBest">Best price &amp; when</button>
+    </span>
+  </div>
+  <div id="mapReplayCtl" style="display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:13px;color:var(--mut)">
+    <button id="mapPlay" style="border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:5px 14px;font:600 13px/1 inherit;cursor:pointer">&#9654; Play</button>
+    <input id="mapSlider" type="range" min="0" value="0" style="flex:1">
+    <span id="mapWhen" style="min-width:150px;font-variant-numeric:tabular-nums"></span>
+  </div>
+  <div id="mapLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--mut);margin-bottom:6px"></div>
+  <svg id="arenaMap" viewBox="230 30 2070 1860" style="width:100%;height:auto" role="img"
+    aria-label="Map of Climate Pledge Arena sections showing the cheapest listed price per section"></svg>
+  <p class="cap">Each marker is a section at its real position in the building; the number is the
+  cheapest listed seat in that section (base price). In <b>Replay</b>, color deepens with price for that
+  game; gray means no listings in that section at that moment. In <b>Best price &amp; when</b>, color
+  shows <i>when</i> the section&rsquo;s cheapest moment happened: green = more than 4 hours out,
+  through red = inside the final hour. Unfinished games show best-so-far. A few sections never list on
+  Gametime and don&rsquo;t appear.</p>
+</div>
+
 <h2>Upcoming Kraken home games, today&rsquo;s market</h2>
 <table id="upcoming">
 <thead><tr><th>Game</th><th class="num">Cheapest seat</th><th class="num">Lower bowl from</th>
@@ -343,6 +372,124 @@ for (const u of K.upcoming) {
     `<td class="num">${f(u.g6)}</td><td class="num">${u.depth}</td>` +
     `<td><span class="read ${cls}">${read}</span></td></tr>`);
 }
+
+const MAP = DATA.map;
+const NS = 'http://www.w3.org/2000/svg';
+const mapSvg = document.getElementById('arenaMap');
+const gameSel = document.getElementById('mapGame');
+MAP.games.forEach((g, i) => {
+  const o = document.createElement('option');
+  o.value = i;
+  o.textContent = g.date.slice(0, 10) + ' \u00b7 ' + g.name + (g.finished ? '' : ' (so far)');
+  gameSel.appendChild(o);
+});
+let MG = Math.max(0, MAP.games.map(g => g.finished).lastIndexOf(true)), MMODE = 'replay', MFRAME = 0, mapTimer = null;
+gameSel.value = MG;
+
+const TIME_BANDS = [
+  { min: 240, color: '#0ca30c', label: 'over 4h before' },
+  { min: 120, color: '#eda100', label: '2-4h' },
+  { min: 60, color: '#ec835a', label: '1-2h' },
+  { min: -9999, color: '#d03b3b', label: 'final hour or later' }];
+const PRICE_RAMP = ['#E6F1FB', '#B5D4F4', '#85B7EB', '#378ADD', '#185FA5'];
+
+function mapWhenLabel(m) {
+  if (m < 0) return Math.round(-m) + 'm after puck drop';
+  if (m < 60) return Math.round(m) + 'm before puck drop';
+  if (m < 48 * 60) return (Math.round(m / 6) / 10) + 'h before puck drop';
+  return Math.round(m / 60 / 24 * 10) / 10 + ' days before puck drop';
+}
+function quantiles(game) {
+  const all = [];
+  game.frames.forEach(f => f.p.forEach(v => { if (v != null) all.push(v); }));
+  all.sort((a, b) => a - b);
+  const q = p => all[Math.min(all.length - 1, Math.floor(p * all.length))];
+  return [q(.2), q(.4), q(.6), q(.8)];
+}
+function priceColor(v, qs) {
+  let i = 0; while (i < 4 && v > qs[i]) i++;
+  return PRICE_RAMP[i];
+}
+function drawMap() {
+  const g = MAP.games[MG];
+  const qs = quantiles(g);
+  mapSvg.innerHTML = '<ellipse cx="1262" cy="946" rx="420" ry="260" fill="none" stroke="#c3c2b7" stroke-width="5"/>' +
+    '<line x1="1262" y1="686" x2="1262" y2="1206" stroke="#c3c2b7" stroke-width="3"/>';
+  const vals = MMODE === 'replay' ? g.frames[MFRAME].p : g.best;
+  MAP.sections.forEach((sec, i) => {
+    const v = vals[i];
+    const grp = document.createElementNS(NS, 'g');
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', sec.x); c.setAttribute('cy', sec.y); c.setAttribute('r', 40);
+    let fill = '#d8d7d0', txtCol = '#6b6a66', txt = '';
+    if (v != null) {
+      if (MMODE === 'replay') {
+        fill = priceColor(v, qs);
+        txtCol = (fill === PRICE_RAMP[3] || fill === PRICE_RAMP[4]) ? '#fff' : '#0C447C';
+        txt = '$' + v;
+      } else {
+        fill = TIME_BANDS.find(b => v.m >= b.min).color;
+        txtCol = '#fff';
+        txt = '$' + v.p;
+      }
+    }
+    c.setAttribute('fill', fill);
+    grp.appendChild(c);
+    if (txt) {
+      const t = document.createElementNS(NS, 'text');
+      t.setAttribute('x', sec.x); t.setAttribute('y', sec.y + 9);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('font-size', '27'); t.setAttribute('font-weight', '600');
+      t.setAttribute('fill', txtCol);
+      t.textContent = txt;
+      grp.appendChild(t);
+    }
+    const title = document.createElementNS(NS, 'title');
+    title.textContent = sec.tier + ' ' + sec.id + ': ' + (v == null ? 'no listings' :
+      MMODE === 'replay' ? 'cheapest $' + v + '/seat at this moment'
+      : 'best price $' + v.p + '/seat, ' + mapWhenLabel(v.m));
+    grp.appendChild(title);
+    mapSvg.appendChild(grp);
+  });
+  const slider = document.getElementById('mapSlider');
+  slider.max = g.frames.length - 1;
+  slider.value = MFRAME;
+  document.getElementById('mapWhen').textContent =
+    MMODE === 'replay' ? mapWhenLabel(g.frames[MFRAME].m) : '';
+  const lg = document.getElementById('mapLegend');
+  if (MMODE === 'replay') {
+    lg.innerHTML = '<span style="font-weight:600">Color = price:</span>' + PRICE_RAMP.map((c, i) =>
+      '<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:' + c +
+      '"></span>' + (i === 0 ? 'cheapest fifth' : i === 4 ? 'priciest fifth' : '') + '</span>').join('') +
+      '<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#d8d7d0"></span>no listings</span>';
+  } else {
+    lg.innerHTML = '<span style="font-weight:600">Color = when the best price appeared:</span>' + TIME_BANDS.map(b =>
+      '<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:' + b.color +
+      '"></span>' + b.label + '</span>').join('');
+  }
+  document.getElementById('mapReplayCtl').style.display = MMODE === 'replay' ? 'flex' : 'none';
+}
+function mapStop() { if (mapTimer) { clearInterval(mapTimer); mapTimer = null;
+  document.getElementById('mapPlay').innerHTML = '&#9654; Play'; } }
+document.getElementById('mapPlay').onclick = () => {
+  if (mapTimer) { mapStop(); return; }
+  document.getElementById('mapPlay').innerHTML = '&#10074;&#10074; Pause';
+  if (MFRAME >= MAP.games[MG].frames.length - 1) MFRAME = 0;
+  mapTimer = setInterval(() => {
+    MFRAME++;
+    if (MFRAME >= MAP.games[MG].frames.length) { MFRAME = MAP.games[MG].frames.length - 1; mapStop(); }
+    drawMap();
+  }, 350);
+};
+document.getElementById('mapSlider').oninput = e => { mapStop(); MFRAME = +e.target.value; drawMap(); };
+gameSel.onchange = e => { mapStop(); MG = +e.target.value; MFRAME = 0; drawMap(); };
+document.getElementById('mapModeReplay').onclick = () => { MMODE = 'replay';
+  document.getElementById('mapModeReplay').classList.add('on');
+  document.getElementById('mapModeBest').classList.remove('on'); drawMap(); };
+document.getElementById('mapModeBest').onclick = () => { mapStop(); MMODE = 'best';
+  document.getElementById('mapModeBest').classList.add('on');
+  document.getElementById('mapModeReplay').classList.remove('on'); drawMap(); };
+drawMap();
 </script>
 </body>
 </html>

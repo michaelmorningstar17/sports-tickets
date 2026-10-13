@@ -46,24 +46,24 @@ def fetch(conn):
                e.datetime_utc < now() AS finished,
                extract(dow FROM e.datetime_local) AS dow,
                round(EXTRACT(epoch FROM (e.datetime_utc - s.captured_at))/60) AS mins_before,
-               s.section_group, s.price_total_cents, s.lots, s.deal_score
+               s.section_group, s.price_total_cents, s.lots, s.deal_score, s.section
         FROM events e JOIN listing_snapshots s USING (event_id)
         WHERE s.deal_score IS NOT NULL AND s.deal_score <= 1.5
     """).fetchall()
     games = defaultdict(lambda: defaultdict(list))
     meta = {}
-    for eid, name, venue, dt_local, finished, dow, mins, tier, cents, lots, score in rows:
+    for eid, name, venue, dt_local, finished, dow, mins, tier, cents, lots, score, sec in rows:
         qtys = {int(x) for x in (lots or '').split('/') if x.isdigit()}
-        games[eid][int(mins)].append((cents / 100, tier, qtys))
+        games[eid][int(mins)].append((cents / 100, tier, qtys, sec))
         meta[eid] = {'name': name, 'venue': venue, 'dow': int(dow),
                      'date': str(dt_local)[:16], 'finished': bool(finished)}
     return games, meta
 
 
 def pass_stats(listings):
-    floor = min(p for p, _, _ in listings)
-    lower = [p for p, t, _ in listings if is_lowerish(t)]
-    g = lambda q: [p for p, t, qs in listings if is_lowerish(t) and q in qs]
+    floor = min(p for p, *_ in listings)
+    lower = [p for p, t, *_ in listings if is_lowerish(t)]
+    g = lambda q: [p for p, t, qs, *_ in listings if is_lowerish(t) and q in qs]
     out = {'floor': floor, 'lower_floor': min(lower) if lower else None,
            'n': len(listings)}
     for q in (2, 3, 4, 5, 6):
@@ -250,7 +250,7 @@ def analyze_kraken(games, meta, conn):
             continue
         for ls in games[eid].values():
             tiers = defaultdict(list)
-            for p, t, _ in ls:
+            for p, t, *_ in ls:
                 tiers[t].append(p)
             if tiers.get('Lower') and tiers.get('Loge'):
                 ratios['loge_vs_lower'].append(min(tiers['Loge']) / min(tiers['Lower']))
@@ -260,6 +260,47 @@ def analyze_kraken(games, meta, conn):
     return k
 
 
+def build_map_data(games, meta, sec_floor_source):
+    """Per Kraken home game: thinned per-section price frames for the replay,
+    plus each section's best price and when it occurred."""
+    here = Path(__file__).parent
+    pos = json.loads((here / 'cpa_sections.json').read_text())
+    sec_ids = sorted(pos.keys())
+    out = {'sections': [{'id': k, 'tier': pos[k]['tier'],
+                         'x': pos[k]['x'], 'y': pos[k]['y']} for k in sec_ids],
+           'games': []}
+    for eid, m in sorted(meta.items(), key=lambda kv: kv[1]['date']):
+        if m['venue'] != KRAKEN_VENUE or 'Season Tickets' in m['name']:
+            continue
+        passes = sec_floor_source.get(eid)
+        if not passes or len(passes) < 8:
+            continue
+        if not m['finished']:
+            cutoff = (datetime.now(timezone.utc) + __import__('datetime').timedelta(days=30)).strftime('%Y-%m-%d')
+            if m['date'][:10] > cutoff:
+                continue
+        ordered = sorted(passes.items(), key=lambda t: -t[0])
+        # thin to at most 36 frames, always keeping first and last
+        n = len(ordered)
+        if n > 36:
+            idx = sorted({round(i * (n - 1) / 35) for i in range(36)})
+            ordered_f = [ordered[i] for i in idx]
+        else:
+            ordered_f = ordered
+        frames = [{'m': mins, 'p': [secp.get(k) for k in sec_ids]}
+                  for mins, secp in ordered_f]
+        best = []
+        for k in sec_ids:
+            cands = [(secp[k], mins) for mins, secp in ordered
+                     if secp.get(k) is not None and mins >= -5]
+            best.append({'p': min(cands)[0], 'm': min(cands, key=lambda c: c[0])[1]}
+                        if cands else None)
+        out['games'].append({'name': m['name'].replace(' at Seattle Kraken', ''),
+                             'date': m['date'], 'finished': m['finished'],
+                             'frames': frames, 'best': best})
+    return out
+
+
 def main():
     import psycopg
     conn = psycopg.connect(clean_dsn(os.environ['DATABASE_URL']))
@@ -267,11 +308,24 @@ def main():
     now = datetime.now(timezone.utc)
     kraken_eids = {eid for eid, m in meta.items()
                    if m['venue'] == KRAKEN_VENUE and m['finished']}
+    sec_floors = {}
+    for eid, m in meta.items():
+        if m['venue'] != KRAKEN_VENUE:
+            continue
+        per_pass = {}
+        for mins, ls in games[eid].items():
+            secp = {}
+            for price, tier, qtys, sec in ls:
+                if sec and (sec not in secp or price < secp[sec]):
+                    secp[sec] = round(price)
+            per_pass[mins] = secp
+        sec_floors[eid] = per_pass
     data = {
         'generated': now.strftime('%B %d, %Y %H:%M UTC'),
         'league': analyze_league(games, meta, now),
         'kraken_agg': analyze_league(games, meta, now, eids=kraken_eids),
         'kraken': analyze_kraken(games, meta, conn),
+        'map': build_map_data(games, meta, sec_floors),
         'n_games_total': len(games),
         'n_rows': conn.execute('SELECT count(*) FROM listing_snapshots').fetchone()[0],
     }
