@@ -246,14 +246,16 @@ function qtyTooltip(ctx) {
     return;
   }
   const h = t.dataPoints[0].parsed.x;
-  const price = (SCOPE.floor_by_qty.find(r => r.h === h) || {})[QTY];
+  const prow = SCOPE.floor_by_qty.find(r => r.h === h) || {};
+  const price = prow[QTY];
+  const priceN = prow['n' + QTY[1]];
   const reg = SCOPE['regret_' + QTY].find(r => r.h === h);
   let html = '<div style="font-weight:600;color:var(--ink);margin-bottom:6px">' +
     hoursLabel(h) + '</div>';
   if (price != null) {
     html += '<div style="color:#2a78d6;font-weight:600">$' + Math.round(price) +
       ' per seat</div><div style="margin-bottom:8px">median cheapest ' + QLABEL[QTY] +
-      ' in the better tiers, across the ' + SCOPE.n_games + ' games that still had one</div>';
+      ' in the better tiers, across the ' + priceN + ' games that still had one</div>';
   }
   if (reg && reg.gone != null) {
     html += '<div style="color:#ec835a;font-weight:600">' + (reg.gone + reg.spike) +
