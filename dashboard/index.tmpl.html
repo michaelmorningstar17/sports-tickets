@@ -84,16 +84,27 @@ their final hours, updated nightly &middot; generated __GENERATED__ &middot;
 <p class="smalln" id="smalln">Kraken sample is small so far; treat these as directional. The toggle
 re-cuts the three charts on this page to Kraken home games only.</p>
 <div class="chartbox" style="margin-top:14px">
-  <div id="qtyLegend" style="display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12px;color:var(--mut);margin-bottom:10px"></div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13.5px;color:var(--mut)">
+    <label for="qtySel" style="font-weight:600">Seats together:</label>
+    <select id="qtySel" style="font:inherit;color:var(--ink);background:var(--card);
+      border:1px solid var(--line);border-radius:8px;padding:6px 10px">
+      <option value="g2" selected>2 seats together</option>
+      <option value="g3">3 seats together</option>
+      <option value="g4">4 seats together</option>
+      <option value="g5">5 seats together</option>
+      <option value="g6">6 seats together</option>
+    </select>
+    <span style="display:flex;align-items:center;gap:5px;margin-left:8px"><span style="width:14px;height:3px;background:#2a78d6"></span>price (left)</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#ec835a44;border:1.5px solid #ec835a"></span>backfire risk (right)</span>
+  </div>
   <canvas id="qtyFloorChart" height="190" role="img"
-    aria-label="Line chart of the median cheapest price for 2, 4, and 6 seats together by hours before the game, with each line segment colored by the risk that waiting backfires"></canvas>
-  <p class="cap">The cards above, as one picture, across <span class="nGames2">-</span> games. Each line
-  is the median cheapest per-seat price for that block size (better tiers); its <b>color is the risk that
-  waiting that long backfires</b>: the share of games where the block was gone, or at least 20% pricier
-  than it had been six hours out, by that point. Hover any point for the exact price and the risk split.
-  Lines heat up left to right: prices barely reward the wait while the odds of regretting it climb.
-  (The late dip in the 6-seat line is survivorship: by then only the softest markets still have 6-blocks
-  to price. Placeholder listings above 1.5x fair value count as gone throughout.)</p>
+    aria-label="Dual axis chart: median cheapest price per seat on the left axis and the risk that waiting backfires on the right axis, for the selected block size, by hours before the game"></canvas>
+  <p class="cap">The cards above, as data, across <span class="nGames2">-</span> games, for the block size
+  you pick. The <b>blue line (left axis)</b> is the median cheapest per-seat price in the better tiers.
+  The <b>shaded curve (right axis, always 0-100%)</b> is the risk that waiting until that hour backfires:
+  the share of games where the block was gone, or at least 20% pricier than it had been six hours out.
+  Hover for exact values and the gone-vs-pricier split. (Late price dips are survivorship: only the
+  softest markets still have blocks to price. Placeholder listings above 1.5x fair value count as gone.)</p>
 </div>
 
 <h2>Myth check: prices do not crash at puck drop</h2>
@@ -182,68 +193,58 @@ const availChart = new Chart(document.getElementById('availChart'), {
         title: { display: true, text: 'games with a block available', color: ink } } } }
 });
 
-const QDASH = { g2: [], g4: [8,3,2,3], g6: [6,3] };
-const QNAME = { g2: '2 together', g4: '4 together', g6: '6 together' };
 const XSCALE = { type: 'linear', reverse: true, min: 0, max: 8,
   grid: { display: false }, ticks: { color: ink, stepSize: 2 } };
-const RISK_BANDS = [
-  { max: 10, color: '#0ca30c', label: 'under 10%' },
-  { max: 25, color: '#eda100', label: '10-25%' },
-  { max: 45, color: '#ec835a', label: '25-45%' },
-  { max: 101, color: '#d03b3b', label: 'over 45%' }];
-const riskColor = r => r == null ? '#898781' : RISK_BANDS.find(b => r < b.max).color;
+let QTY = 'g2';
 
-function mergedPts(S, f) {
-  const reg = Object.fromEntries(S['regret_' + f].map(r => [r.h, r]));
-  return S.floor_by_qty.filter(r => r[f] != null).map(r => {
-    const g = reg[r.h] || {};
-    const risk = g.gone == null ? null : g.gone + g.spike;
-    return { x: r.h, y: r[f], risk, gone: g.gone, spike: g.spike };
-  });
+function pricePts(S, f) {
+  return S.floor_by_qty.filter(r => r[f] != null).map(r => ({ x: r.h, y: r[f] }));
+}
+function riskPts(S, f) {
+  return S['regret_' + f].filter(r => r.gone != null)
+    .map(r => ({ x: r.h, y: r.gone + r.spike, gone: r.gone, spike: r.spike }));
 }
 
 const qtyFloorChart = new Chart(document.getElementById('qtyFloorChart'), {
   type: 'line',
-  data: { datasets: ['g2', 'g4', 'g6'].map(f => ({
-    label: QNAME[f],
-    data: mergedPts(L, f),
-    borderWidth: 2.5, borderDash: QDASH[f], tension: 0,
-    borderColor: '#898781',
-    segment: { borderColor: c => riskColor(c.p1.raw.risk) },
-    pointRadius: 3, pointHoverRadius: 6,
-    pointBackgroundColor: c => riskColor(c.raw && c.raw.risk),
-    pointBorderWidth: 0 })) },
+  data: { datasets: [
+    { label: 'median cheapest $/seat', yAxisID: 'yPrice', data: pricePts(L, QTY),
+      borderColor: '#2a78d6', backgroundColor: '#2a78d6', borderWidth: 2.5,
+      pointRadius: 0, pointHoverRadius: 5, tension: 0 },
+    { label: 'backfire risk', yAxisID: 'yRisk', data: riskPts(L, QTY),
+      borderColor: '#ec835a', backgroundColor: '#ec835a26', borderWidth: 2,
+      borderDash: [5,3], pointRadius: 0, pointHoverRadius: 5, tension: 0,
+      fill: 'origin' }] },
   options: { interaction: { mode: 'nearest', intersect: false },
     plugins: { legend: { display: false },
       tooltip: { callbacks: { label: c => {
+        if (c.dataset.yAxisID === 'yPrice')
+          return 'median cheapest: $' + Math.round(c.parsed.y) + '/seat';
         const d = c.raw;
-        let out = c.dataset.label + ': $' + Math.round(d.y) + '/seat (median game)';
-        if (d.risk != null) out += ' \u00b7 backfire risk if still waiting: ' + d.risk +
-          '% (' + d.gone + '% gone, ' + d.spike + '% \u226520% pricier)';
-        return out;
+        return 'backfire risk if still waiting: ' + d.y + '% (' + d.gone +
+          '% gone, ' + d.spike + '% \u226520% pricier)';
       } } } },
     scales: { x: { ...XSCALE,
         title: { display: true, text: 'hours before puck drop', color: ink } },
-      y: { grid: { color: grid }, ticks: { color: ink, callback: v => '$' + v },
-        title: { display: true, text: 'median cheapest $/seat', color: ink } } } }
+      yPrice: { position: 'left', min: 0, suggestedMax: 160, grid: { color: grid },
+        ticks: { color: '#2a78d6', callback: v => '$' + v },
+        title: { display: true, text: 'median cheapest $/seat', color: '#2a78d6' } },
+      yRisk: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false },
+        ticks: { color: '#ec835a', callback: v => v + '%', stepSize: 25 },
+        title: { display: true, text: 'risk waiting backfires', color: '#ec835a' } } } }
 });
 
-const lgQ = document.getElementById('qtyLegend');
-lgQ.insertAdjacentHTML('beforeend', '<span style="font-weight:600">Line =</span>');
-for (const f of ['g2', 'g4', 'g6']) {
-  lgQ.insertAdjacentHTML('beforeend',
-    `<span style="display:flex;align-items:center;gap:5px"><svg width="26" height="6" aria-hidden="true">` +
-    `<line x1="0" y1="3" x2="26" y2="3" stroke="#898781" stroke-width="2.5" stroke-dasharray="${QDASH[f].join(',')}"/></svg>${QNAME[f]}</span>`);
+function renderQty() {
+  qtyFloorChart.data.datasets[0].data = pricePts(SCOPE, QTY);
+  qtyFloorChart.data.datasets[1].data = riskPts(SCOPE, QTY);
+  qtyFloorChart.update();
 }
-lgQ.insertAdjacentHTML('beforeend', '<span style="font-weight:600;margin-left:6px">Color = risk waiting backfires:</span>');
-for (const bnd of RISK_BANDS) {
-  lgQ.insertAdjacentHTML('beforeend',
-    `<span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:${bnd.color}"></span>${bnd.label}</span>`);
-}
+document.getElementById('qtySel').onchange = e => { QTY = e.target.value; renderQty(); };
 
 document.getElementById('g4late').textContent =
   (() => { const r = L.regret_g4[L.regret_g4.length - 1]; return r.gone + r.spike; })();
-
+document.getElementById('g6late').textContent =
+  (() => { const r = L.regret_g6[L.regret_g6.length - 1]; return r.gone + r.spike; })();
 
 document.querySelectorAll('.segLn').forEach(e => e.textContent = L.n_games);
 document.querySelectorAll('.segKn').forEach(e => e.textContent = KA.n_games);
@@ -257,10 +258,7 @@ function setScope(kraken) {
   availChart.data.datasets[0].data = SCOPE.avail_g4.map(a => ({ x: a.h, y: a.pct }));
   availChart.data.datasets[1].data = SCOPE.avail_g6.map(a => ({ x: a.h, y: a.pct }));
   availChart.update();
-  ['g2', 'g4', 'g6'].forEach((f, i) => {
-    qtyFloorChart.data.datasets[i].data = mergedPts(SCOPE, f);
-  });
-  qtyFloorChart.update();
+  renderQty();
   document.querySelectorAll('.nGames2').forEach(e => e.textContent = SCOPE.n_games);
 }
 document.getElementById('segL').onclick = () => setScope(false);

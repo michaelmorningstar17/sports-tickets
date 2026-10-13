@@ -64,14 +64,12 @@ def pass_stats(listings):
     floor = min(p for p, _, _ in listings)
     lower = [p for p, t, _ in listings if is_lowerish(t)]
     g = lambda q: [p for p, t, qs in listings if is_lowerish(t) and q in qs]
-    return {
-        'floor': floor,
-        'lower_floor': min(lower) if lower else None,
-        'n': len(listings),
-        'g2': min(g(2)) if g(2) else None,
-        'g4': min(g(4)) if g(4) else None,
-        'g6': min(g(6)) if g(6) else None,
-    }
+    out = {'floor': floor, 'lower_floor': min(lower) if lower else None,
+           'n': len(listings)}
+    for q in (2, 3, 4, 5, 6):
+        vals = g(q)
+        out[f'g{q}'] = min(vals) if vals else None
+    return out
 
 
 def analyze_league(games, meta, now_utc, eids=None):
@@ -158,7 +156,7 @@ def analyze_league(games, meta, now_utc, eids=None):
     fq = []
     for h in HOURS_GRID:
         row = {'h': h}
-        for f in ('g2', 'g4', 'g6'):
+        for f in ('g2', 'g3', 'g4', 'g5', 'g6'):
             vals = []
             for g in per_game.values():
                 target = h * 60
@@ -172,7 +170,7 @@ def analyze_league(games, meta, now_utc, eids=None):
 
     # 'waiting backfires' risk: by hour h, the block is gone OR >=20% pricier
     # than the same game's T-6h block price. Only games that had a block at T-6h.
-    for f in ('g2', 'g4', 'g6'):
+    for f in ('g2', 'g3', 'g4', 'g5', 'g6'):
         out = []
         for h in HOURS_GRID:
             gone = spike = tot = 0
