@@ -158,14 +158,14 @@ re-cuts the three charts on this page to Kraken home games only.</p>
     <span id="mapWhen" style="min-width:150px;font-variant-numeric:tabular-nums"></span>
   </div>
   <div id="mapLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--mut);margin-bottom:6px"></div>
-  <svg id="arenaMap" viewBox="230 30 2070 1860" style="width:100%;height:auto" role="img"
+  <svg id="arenaMap" viewBox="0 0 2560 1936" style="width:100%;height:auto" role="img"
     aria-label="Map of Climate Pledge Arena sections showing the cheapest listed price per section"></svg>
   <p class="cap">Each marker is a section at its real position in the building; the number is the
   cheapest listed seat in that section (base price). In <b>Replay</b>, color deepens with price for that
   game; gray means no listings in that section at that moment. In <b>Best price &amp; when</b>, color
   shows <i>when</i> the section&rsquo;s cheapest moment happened: green = more than 4 hours out,
   through red = inside the final hour. Unfinished games show best-so-far. A few sections never list on
-  Gametime and don&rsquo;t appear.</p>
+  Gametime and don&rsquo;t appear. Arena map imagery served from Gametime.</p>
 </div>
 
 <h2>Upcoming Kraken home games, today&rsquo;s market</h2>
@@ -413,14 +413,15 @@ function priceColor(v, qs) {
 function drawMap() {
   const g = MAP.games[MG];
   const qs = quantiles(g);
-  mapSvg.innerHTML = '<ellipse cx="1262" cy="946" rx="420" ry="260" fill="none" stroke="#c3c2b7" stroke-width="5"/>' +
-    '<line x1="1262" y1="686" x2="1262" y2="1206" stroke="#c3c2b7" stroke-width="3"/>';
+  mapSvg.innerHTML = '<image href="https://maps.gametime.co/v2/key_arena/hockey/hockey-4.png" ' +
+    'x="0" y="0" width="2560" height="1936" opacity="0.95"/>';
   const vals = MMODE === 'replay' ? g.frames[MFRAME].p : g.best;
   MAP.sections.forEach((sec, i) => {
     const v = vals[i];
     const grp = document.createElementNS(NS, 'g');
     const c = document.createElementNS(NS, 'circle');
     c.setAttribute('cx', sec.x); c.setAttribute('cy', sec.y); c.setAttribute('r', 40);
+    c.setAttribute('stroke', '#ffffff'); c.setAttribute('stroke-width', 3);
     let fill = '#d8d7d0', txtCol = '#6b6a66', txt = '';
     if (v != null) {
       if (MMODE === 'replay') {
