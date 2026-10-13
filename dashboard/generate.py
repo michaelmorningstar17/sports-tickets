@@ -297,7 +297,49 @@ def build_map_data(games, meta, sec_floor_source):
                         if cands else None)
         out['games'].append({'name': m['name'].replace(' at Seattle Kraken', ''),
                              'date': m['date'], 'finished': m['finished'],
-                             'frames': frames, 'best': best})
+                             'frames': frames, 'best': best,
+                             '_eid': eid})
+
+    # season average: completed regular-season home games only
+    reg = [(g, meta[g['_eid']]) for g in out['games']
+           if g['finished'] and 'Preseason' not in meta[g['_eid']]['name']]
+    if reg:
+        grid = [4320, 2880, 1440, 720, 480, 360, 300, 240, 180, 120,
+                90, 60, 45, 30, 15, 0]
+        ordered_by_game = []
+        for g, m in reg:
+            passes = sec_floor_source[g['_eid']]
+            ordered_by_game.append(sorted(passes.items(), key=lambda t: -t[0]))
+        avg_frames = []
+        for gm in grid:
+            tol = max(12, gm * 0.25)
+            per_sec = {k: [] for k in sec_ids}
+            hit = False
+            for ordered in ordered_by_game:
+                near = min(ordered, key=lambda t: abs(t[0] - gm))
+                if abs(near[0] - gm) > tol:
+                    continue
+                hit = True
+                for k in sec_ids:
+                    v = near[1].get(k)
+                    if v is not None:
+                        per_sec[k].append(v)
+            if hit:
+                avg_frames.append({'m': gm, 'p': [
+                    round(statistics.median(per_sec[k])) if per_sec[k] else None
+                    for k in sec_ids]})
+        avg_best = []
+        for i, k in enumerate(sec_ids):
+            vals = [g['best'][i] for g, _ in reg if g['best'][i]]
+            avg_best.append({'p': round(statistics.median([v['p'] for v in vals])),
+                             'm': round(statistics.median([v['m'] for v in vals]))}
+                            if vals else None)
+        out['games'].insert(0, {
+            'name': f'Season average ({len(reg)} completed regular-season home games)',
+            'date': '', 'finished': True,
+            'frames': avg_frames, 'best': avg_best})
+    for g in out['games']:
+        g.pop('_eid', None)
     return out
 
 
