@@ -83,12 +83,16 @@ their final hours, updated nightly &middot; generated __GENERATED__ &middot;
 <p class="smalln" id="smalln">Kraken sample is small so far; treat these as directional. The toggle
 re-cuts the three charts on this page to Kraken home games only.</p>
 <div class="chartbox" style="margin-top:14px">
-  <canvas id="qtyFloorChart" height="180" role="img"
+  <canvas id="qtyFloorChart" height="150" role="img"
     aria-label="Line chart of the median cheapest price for 2, 4, and 6 seats together by hours before the game"></canvas>
-  <p class="cap">The cards above, as data: the median cheapest per-seat price for 2, 4, and 6 seats
-  together (better tiers), by hours before puck drop, across <span class="nGames2">-</span> games.
-  The pair floor barely moves; each step up in group size adds a premium that widens as the
-  game approaches and blocks fragment.</p>
+  <canvas id="riskChart" height="110" style="margin-top:6px" role="img"
+    aria-label="Line chart of the share of games with no block of that size remaining, by hours before the game"></canvas>
+  <p class="cap">The cards above, as data, across <span class="nGames2">-</span> games. <b>Top:</b> the
+  median cheapest per-seat price for 2, 4, and 6 seats together (better tiers). <b>Bottom, same clock:</b>
+  the risk that waiting actually carries: the share of games where <i>no block of that size remained at
+  all</i>. Waiting doesn't buy groups a lower price; it converts money risk into sell-out risk. (The late
+  dip in the 6-seat price line is survivorship: by then, only the softest markets still have 6-blocks to
+  price.)</p>
 </div>
 
 <h2>Myth check: prices do not crash at puck drop</h2>
@@ -180,6 +184,8 @@ const availChart = new Chart(document.getElementById('availChart'), {
 
 const QCOL = { g2: '#2a78d6', g4: '#eda100', g6: '#eb6834' };
 const QDASH = { g2: [], g4: [8,3,2,3], g6: [6,3] };
+const XSCALE = { type: 'linear', reverse: true, min: 0, max: 8,
+  grid: { display: false }, ticks: { color: ink, stepSize: 2 } };
 const qtyFloorChart = new Chart(document.getElementById('qtyFloorChart'), {
   type: 'line',
   data: { datasets: ['g2', 'g4', 'g6'].map(f => ({
@@ -190,11 +196,29 @@ const qtyFloorChart = new Chart(document.getElementById('qtyFloorChart'), {
   options: { interaction: { mode: 'nearest', intersect: false },
     plugins: { legend: { labels: { color: ink, boxWidth: 14, boxHeight: 3 } },
       tooltip: { callbacks: { label: c => c.dataset.label + ': $' + Math.round(c.parsed.y) + '/seat (median game)' } } },
-    scales: { x: { type: 'linear', reverse: true, min: 0, max: 8,
-        title: { display: true, text: 'hours before puck drop', color: ink },
-        grid: { display: false }, ticks: { color: ink, stepSize: 2 } },
+    scales: { x: { ...XSCALE, ticks: { display: false } },
       y: { grid: { color: grid }, ticks: { color: ink, callback: v => '$' + v },
         title: { display: true, text: 'median cheapest $/seat', color: ink } } } }
+});
+
+const riskOf = (S, f, avail) => avail.map(a => ({ x: a.h, y: 100 - a.pct }));
+const riskChart = new Chart(document.getElementById('riskChart'), {
+  type: 'line',
+  data: { datasets: [
+    { label: '4 together', data: riskOf(L, 'g4', L.avail_g4), borderColor: QCOL.g4,
+      backgroundColor: QCOL.g4 + '22', borderWidth: 2, borderDash: QDASH.g4,
+      pointRadius: 0, tension: 0, fill: 'origin' },
+    { label: '6 together', data: riskOf(L, 'g6', L.avail_g6), borderColor: QCOL.g6,
+      backgroundColor: QCOL.g6 + '22', borderWidth: 2, borderDash: QDASH.g6,
+      pointRadius: 0, tension: 0, fill: 'origin' }] },
+  options: { interaction: { mode: 'nearest', intersect: false },
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: c => c.dataset.label + ': no block left in ' + Math.round(c.parsed.y) + '% of games' } } },
+    scales: { x: { ...XSCALE,
+        title: { display: true, text: 'hours before puck drop', color: ink } },
+      y: { min: 0, max: 60, grid: { color: grid },
+        ticks: { color: ink, callback: v => v + '%', stepSize: 20 },
+        title: { display: true, text: 'sell-out risk', color: ink } } } }
 });
 
 document.querySelectorAll('.segLn').forEach(e => e.textContent = L.n_games);
@@ -214,6 +238,9 @@ function setScope(kraken) {
       SCOPE.floor_by_qty.filter(r => r[f] != null).map(r => ({ x: r.h, y: r[f] }));
   });
   qtyFloorChart.update();
+  riskChart.data.datasets[0].data = SCOPE.avail_g4.map(a => ({ x: a.h, y: 100 - a.pct }));
+  riskChart.data.datasets[1].data = SCOPE.avail_g6.map(a => ({ x: a.h, y: 100 - a.pct }));
+  riskChart.update();
   document.querySelectorAll('.nGames2').forEach(e => e.textContent = SCOPE.n_games);
 }
 document.getElementById('segL').onclick = () => setScope(false);
