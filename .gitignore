@@ -7,3 +7,4 @@ node_modules/
 .neon/
 node_modules/
 .venv/
+site/

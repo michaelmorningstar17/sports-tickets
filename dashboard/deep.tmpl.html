@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kraken ticket market: data &amp; methodology</title>
+<style>
+:root{--bg:#fcfcfb;--card:#ffffff;--ink:#1a1a19;--mut:#52514e;--faint:#898781;
+--line:#e1e0d9;--accent:#2a78d6;--grid:#ececea}
+@media (prefers-color-scheme:dark){:root{--bg:#161615;--card:#1f1f1e;--ink:#f0efec;
+--mut:#c3c2b7;--faint:#898781;--line:#2c2c2a;--grid:#262625}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+font:15.5px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:880px;margin:0 auto;padding:40px 16px 60px}
+h1{font-size:26px;line-height:1.2;margin:0 0 6px}
+h2{font-size:19px;margin:38px 0 8px}
+h3{font-size:15px;margin:20px 0 6px}
+.sub{color:var(--faint);font-size:13.5px;margin:0 0 24px}
+.sub a{color:var(--accent)}
+p{color:var(--mut);font-size:14.5px}
+b,strong{color:var(--ink)}
+.chartbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-top:12px}
+.chartbox .cap{font-size:12.5px;color:var(--faint);margin-top:10px}
+canvas{max-width:100%}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:10px}
+th{color:var(--faint);font-weight:600;text-align:left;font-size:12px;border-bottom:1px solid var(--line);padding:6px 8px}
+td{padding:7px 8px;border-bottom:1px solid var(--grid);color:var(--mut)}
+td:first-child{color:var(--ink)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+code{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:12.5px}
+footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--faint)}
+footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>The Kraken ticket market: data &amp; methodology</h1>
+<p class="sub">Companion to <a href="index.html">&larr; the plain-advice page</a> &middot;
+generated __GENERATED__ &middot; <span id="rows">-</span> listing observations,
+<span id="nGames">-</span> games with qualified endgame coverage</p>
+
+<h2>How the data is collected</h2>
+<p>A collector snapshots Gametime&rsquo;s (unofficial) mobile API on a grid anchored to each game&rsquo;s
+start time: daily from when a game appears on the schedule, every 6 hours inside a week, hourly inside
+24 hours, and every 15 minutes from T-6h to T+30m. Every Kraken game gets the full treatment; every
+other NHL game enters at listing level 8 hours before its start. Each snapshot records every listing&rsquo;s
+section, row, quantity options, price before fees, all-in price, and Gametime&rsquo;s internal
+<code>deal_score</code>.</p>
+<p><b>Three honest limitations.</b> (1) These are <i>asks, not transactions</i>: a vanished listing was
+sold or delisted, we cannot distinguish. (2) Prices are the API&rsquo;s base all-in prices; Gametime&rsquo;s
+apps apply a display layer of roughly 0-10% on top, varying by listing. (3) Floors exclude junk
+listings via a <code>deal_score &gt; 1.5</code> filter (broker placeholders at 10-30x fair value).</p>
+
+<h3>The deal score, decomposed</h3>
+<p>Empirically, <code>deal_score = all-in price &divide; V</code> where V is Gametime&rsquo;s modeled fair
+value for that exact seat at that event (verifiable: price/score is constant across listings in the same
+row to within rounding). V is recoverable per listing, which gives the dataset the platform&rsquo;s own
+seat-quality model for free. Two caveats discovered along the way: V inflates sharply inside the final
+hours (so scores are not comparable across time near puck drop), and V underweights row depth relative
+to human preference, meaning front-row-adjacent bargains are systematically under-badged by the app.</p>
+
+<h2>Finding 1: the cheapest moment is early more often than late</h2>
+<div class="chartbox">
+  <canvas id="bottomChart" height="170" role="img" aria-label="Distribution of when each game's floor bottomed"></canvas>
+  <p class="cap">Timing of each game&rsquo;s minimum floor within its observed window (coverage requirement:
+  first snapshot at least 4h out, 8+ passes). Median drop from the T-6h reference to the bottom:
+  <span id="drop">-</span>% (IQR <span id="dropIQR">-</span>). The distribution is bimodal: soft markets
+  sag into puck drop, everything else bottoms early and firms.</p>
+</div>
+
+<h2>Finding 2: the median floor trajectory is flat, then rises</h2>
+<div class="chartbox">
+  <canvas id="trajChart" height="180" role="img" aria-label="Median normalized floor trajectory with interquartile band"></canvas>
+  <p class="cap">Floor price indexed to each game&rsquo;s T-6h level (1.0), median across games with an
+  interquartile band. The median game&rsquo;s cheapest seat is ~3-6% <b>more</b> expensive in the final
+  hour than at T-6h. The &ldquo;last-minute crash&rdquo; is real only in the soft tail of the distribution,
+  and you cannot know in advance that your game is in it (listing depth is the best early tell).</p>
+</div>
+
+<h2>Finding 3: contiguity is the scarce good</h2>
+<div class="chartbox">
+  <canvas id="availChart" height="170" role="img" aria-label="Availability of 4-together and 6-together blocks by hours out"></canvas>
+  <p class="cap">Share of games with at least one 4-together / 6-together block in lower-type tiers, by
+  hours before start. The per-seat premium of a 6-block over the pair floor widens from
+  <span id="p6a">-</span>% at T-6h (n=<span id="p6an">-</span>) to <span id="p6b">-</span>% at T-1h
+  (n=<span id="p6bn">-</span>); for 4-blocks, <span id="p4a">-</span>% to <span id="p4b">-</span>%.
+  Blocks fragment as sellers split them and nothing recombines them.</p>
+</div>
+
+<h2>Finding 4: day of week moves the level, not the clock</h2>
+<table id="dowTable">
+<thead><tr><th>Games</th><th class="num">n</th><th class="num">Median floor at T-6h</th>
+<th class="num">Median bottom (min before start)</th><th class="num">Median drop to bottom</th></tr></thead>
+<tbody></tbody>
+</table>
+<p>Weekend demand raises the whole price curve but the shape, when the bottom arrives and how far it
+falls, is statistically indistinguishable from weekdays at current sample sizes. Decision rules should
+condition on <b>quantity and seat ambition</b>, using day-of-week only to set budget expectations.</p>
+
+<h2>The Kraken home games tracked so far</h2>
+<table id="kTable">
+<thead><tr><th>Game</th><th class="num">Floor bottom</th><th class="num">When</th><th>Pattern</th></tr></thead>
+<tbody></tbody>
+</table>
+<p id="tierNote"></p>
+
+<h2>Open questions the next months of data will answer</h2>
+<p>Whether regular-season Kraken markets (n=<span id="kn">-</span> so far) follow the league-wide
+distributions above; how marquee opponents and playoff-race games shift the curve; section-level timing
+within the lower bowl; and whether Gametime&rsquo;s V-vs-row bias persists, which is the measurable edge
+for buyers who care about proximity. The dashboard regenerates nightly as games accrue.</p>
+
+<footer>
+Personal research project; not affiliated with Gametime or the Seattle Kraken. Prices are resale asks
+on one marketplace, base-price basis. Data through __GENERATED__.
+<a href="index.html">Plain-advice version</a>.
+</footer>
+</div>
+
+<script>const DATA = /*__DATA__*/null;</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const L = DATA.league, K = DATA.kraken;
+const css = getComputedStyle(document.documentElement);
+const ink = css.getPropertyValue('--mut').trim(), grid = css.getPropertyValue('--grid').trim();
+document.getElementById('rows').textContent = DATA.n_rows.toLocaleString();
+document.getElementById('nGames').textContent = L.n_games;
+document.getElementById('drop').textContent = L.median_drop_pct;
+document.getElementById('dropIQR').textContent = L.drop_p25_p75[0] + '-' + L.drop_p25_p75[1] + '%';
+const pct = x => Math.round((x - 1) * 100);
+document.getElementById('p6a').textContent = pct(L.premium_t6.g6);
+document.getElementById('p6b').textContent = pct(L.premium_t1.g6);
+document.getElementById('p6an').textContent = L.premium_t6.n6;
+document.getElementById('p6bn').textContent = L.premium_t1.n6;
+document.getElementById('p4a').textContent = pct(L.premium_t6.g4);
+document.getElementById('p4b').textContent = pct(L.premium_t1.g4);
+document.getElementById('kn').textContent = K.completed.length;
+
+new Chart(document.getElementById('bottomChart'), {
+  type: 'bar',
+  data: { labels: L.bottom_buckets.map(b => b.label),
+    datasets: [{ data: L.bottom_buckets.map(b => b.n), backgroundColor: '#2a78d6',
+      borderRadius: 4, maxBarThickness: 56 }] },
+  options: { plugins: { legend: { display: false } },
+    scales: { x: { grid: { display: false }, ticks: { color: ink } },
+      y: { grid: { color: grid }, ticks: { color: ink },
+        title: { display: true, text: 'games', color: ink } } } }
+});
+
+const T = L.traj_floor.filter(t => t.median);
+new Chart(document.getElementById('trajChart'), {
+  type: 'line',
+  data: { datasets: [
+    { label: 'p75', data: T.map(t => ({ x: t.h, y: t.p75 })), borderWidth: 0,
+      pointRadius: 0, fill: '+1', backgroundColor: '#2a78d622' },
+    { label: 'p25', data: T.map(t => ({ x: t.h, y: t.p25 })), borderWidth: 0,
+      pointRadius: 0, fill: false },
+    { label: 'median game', data: T.map(t => ({ x: t.h, y: t.median })),
+      borderColor: '#2a78d6', borderWidth: 2.5, pointRadius: 0, tension: 0 }] },
+  options: { interaction: { mode: 'nearest', intersect: false },
+    plugins: { legend: { display: false },
+      tooltip: { filter: i => i.datasetIndex === 2,
+        callbacks: { label: c => 'median index: ' + c.parsed.y } } },
+    scales: { x: { type: 'linear', reverse: true, min: 0, max: 8,
+        title: { display: true, text: 'hours before puck drop', color: ink },
+        grid: { display: false }, ticks: { color: ink, stepSize: 2 } },
+      y: { min: 0.8, max: 1.3, grid: { color: grid }, ticks: { color: ink },
+        title: { display: true, text: 'floor indexed to T-6h = 1.0', color: ink } } } }
+});
+
+new Chart(document.getElementById('availChart'), {
+  type: 'line',
+  data: { datasets: [
+    { label: '4 together', data: L.avail_g4.map(a => ({ x: a.h, y: a.pct })),
+      borderColor: '#2a78d6', backgroundColor: '#2a78d6', borderWidth: 2, pointRadius: 0, tension: 0 },
+    { label: '6 together', data: L.avail_g6.map(a => ({ x: a.h, y: a.pct })),
+      borderColor: '#eb6834', backgroundColor: '#eb6834', borderWidth: 2, borderDash: [6,3], pointRadius: 0, tension: 0 }] },
+  options: { interaction: { mode: 'nearest', intersect: false },
+    plugins: { legend: { labels: { color: ink, boxWidth: 14, boxHeight: 3 } } },
+    scales: { x: { type: 'linear', reverse: true, min: 0, max: 8,
+        title: { display: true, text: 'hours before puck drop', color: ink },
+        grid: { display: false }, ticks: { color: ink, stepSize: 2 } },
+      y: { min: 0, max: 100, grid: { color: grid },
+        ticks: { color: ink, callback: v => v + '%' } } } }
+});
+
+const dtb = document.querySelector('#dowTable tbody');
+for (const [label, d] of [['Weekday (Mon-Thu)', L.dow.weekday], ['Weekend (Fri-Sun)', L.dow.weekend]]) {
+  dtb.insertAdjacentHTML('beforeend',
+    `<tr><td>${label}</td><td class="num">${d.n}</td><td class="num">$${d.median_t6_floor}</td>` +
+    `<td class="num">${d.median_bottom_min}</td><td class="num">${d.median_drop_pct}%</td></tr>`);
+}
+
+const ktb = document.querySelector('#kTable tbody');
+const patterns = {
+  '2026-09-24': 'Soft preseason market: floor sagged all week, bottomed in the final 2 hours.',
+  '2026-10-04': 'Season opener: demand held; floor never dipped below $60. Early buying won.',
+  '2026-10-06': 'Mixed: moderate demand, bottomed essentially at puck drop.'
+};
+for (const c of K.completed) {
+  const when = c.bottom_min >= 60 ? 'T-' + Math.round(c.bottom_min / 60 * 10) / 10 + 'h'
+    : c.bottom_min >= 0 ? 'T-' + Math.round(c.bottom_min) + 'm'
+    : 'T+' + Math.round(-c.bottom_min) + 'm';
+  ktb.insertAdjacentHTML('beforeend',
+    `<tr><td>${c.date.slice(0, 10)} ${c.name.replace(' at Seattle Kraken', '')}</td>` +
+    `<td class="num">$${Math.round(c.bottom_floor)}</td><td class="num">${when}</td>` +
+    `<td>${patterns[c.date.slice(0, 10)] || ''}</td></tr>`);
+}
+document.getElementById('tierNote').innerHTML =
+  `Tier structure at Climate Pledge across every snapshot so far: the Loge floor runs at a median of
+  ${Math.round(K.tier_ratio.loge_vs_lower * 100)}% of the Lower floor at the same moment, and the Upper
+  at ${Math.round(K.tier_ratio.upper_vs_lower * 100)}%. The Loge (shallow 100-level mezzanine) is the
+  structural value tier; the Lower bowl's cheap inventory is absorbed earliest, consistent with the
+  league-wide contiguity finding.`;
+</script>
+</body>
+</html>
