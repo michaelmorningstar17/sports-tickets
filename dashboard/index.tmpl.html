@@ -83,7 +83,11 @@ their final hours, updated nightly &middot; generated __GENERATED__ &middot;
 </div>
 <p class="smalln" id="smalln">Kraken sample is small so far; treat these as directional. The toggle
 re-cuts the three charts on this page to Kraken home games only.</p>
-<div class="chartbox" style="margin-top:14px">
+<div class="chartbox" style="margin-top:14px;position:relative">
+  <div id="qtyTip" style="display:none;position:absolute;z-index:5;pointer-events:none;
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    box-shadow:0 4px 14px rgba(0,0,0,.12);padding:12px 14px;max-width:300px;
+    font-size:13px;line-height:1.5;color:var(--mut)"></div>
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13.5px;color:var(--mut)">
     <label for="qtySel" style="font-weight:600">Seats together:</label>
     <select id="qtySel" style="font:inherit;color:var(--ink);background:var(--card);
@@ -215,15 +219,9 @@ const qtyFloorChart = new Chart(document.getElementById('qtyFloorChart'), {
       borderColor: '#ec835a', backgroundColor: '#ec835a26', borderWidth: 2,
       borderDash: [5,3], pointRadius: 0, pointHoverRadius: 5, tension: 0,
       fill: 'origin' }] },
-  options: { interaction: { mode: 'nearest', intersect: false },
+  options: { interaction: { mode: 'nearest', axis: 'x', intersect: false },
     plugins: { legend: { display: false },
-      tooltip: { callbacks: { label: c => {
-        if (c.dataset.yAxisID === 'yPrice')
-          return 'median cheapest: $' + Math.round(c.parsed.y) + '/seat';
-        const d = c.raw;
-        return 'backfire risk if still waiting: ' + d.y + '% (' + d.gone +
-          '% gone, ' + d.spike + '% \u226520% pricier)';
-      } } } },
+      tooltip: { enabled: false, external: qtyTooltip } },
     scales: { x: { ...XSCALE,
         title: { display: true, text: 'hours before puck drop', color: ink } },
       yPrice: { position: 'left', min: 0, suggestedMax: 160, grid: { color: grid },
@@ -233,6 +231,51 @@ const qtyFloorChart = new Chart(document.getElementById('qtyFloorChart'), {
         ticks: { color: '#ec835a', callback: v => v + '%', stepSize: 25 },
         title: { display: true, text: 'risk waiting backfires', color: '#ec835a' } } } }
 });
+
+const QLABEL = { g2: 'pair (2 seats)', g3: '3-seat block', g4: '4-seat block',
+                 g5: '5-seat block', g6: '6-seat block' };
+function hoursLabel(h) {
+  if (h >= 1) return (h % 1 ? h.toFixed(2).replace(/0+$/, '').replace(/\.$/, '') : h) + ' hours before puck drop';
+  return Math.round(h * 60) + ' minutes before puck drop';
+}
+function qtyTooltip(ctx) {
+  const tip = document.getElementById('qtyTip');
+  const t = ctx.tooltip;
+  if (!t || t.opacity === 0 || !t.dataPoints || !t.dataPoints.length) {
+    tip.style.display = 'none';
+    return;
+  }
+  const h = t.dataPoints[0].parsed.x;
+  const price = (SCOPE.floor_by_qty.find(r => r.h === h) || {})[QTY];
+  const reg = SCOPE['regret_' + QTY].find(r => r.h === h);
+  let html = '<div style="font-weight:600;color:var(--ink);margin-bottom:6px">' +
+    hoursLabel(h) + '</div>';
+  if (price != null) {
+    html += '<div style="color:#2a78d6;font-weight:600">$' + Math.round(price) +
+      ' per seat</div><div style="margin-bottom:8px">median cheapest ' + QLABEL[QTY] +
+      ' in the better tiers, across the ' + SCOPE.n_games + ' games that still had one</div>';
+  }
+  if (reg && reg.gone != null) {
+    html += '<div style="color:#ec835a;font-weight:600">' + (reg.gone + reg.spike) +
+      '% risk that waiting this long backfires</div>' +
+      '<div style="padding-left:10px">\u2022 block completely gone: <b style="color:var(--ink)">' +
+      reg.gone + '%</b> of games</div>' +
+      '<div style="padding-left:10px">\u2022 still there, but \u226520% pricier than it was 6h out: <b style="color:var(--ink)">' +
+      reg.spike + '%</b></div>' +
+      '<div style="margin-top:4px;font-size:11.5px;color:var(--faint)">compared with buying the same block 6 hours before the game (n=' +
+      reg.n + ')</div>';
+  } else {
+    html += '<div style="font-size:12px;color:var(--faint)">backfire risk: not enough data at this hour</div>';
+  }
+  tip.innerHTML = html;
+  tip.style.display = 'block';
+  const canvas = ctx.chart.canvas;
+  const boxW = tip.offsetWidth, areaW = canvas.offsetWidth;
+  let left = canvas.offsetLeft + t.caretX + 14;
+  if (left + boxW > canvas.offsetLeft + areaW) left = canvas.offsetLeft + t.caretX - boxW - 14;
+  tip.style.left = Math.max(0, left) + 'px';
+  tip.style.top = (canvas.offsetTop + Math.min(t.caretY, canvas.offsetHeight - tip.offsetHeight - 10)) + 'px';
+}
 
 function renderQty() {
   qtyFloorChart.data.datasets[0].data = pricePts(SCOPE, QTY);
