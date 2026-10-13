@@ -36,6 +36,12 @@ th.num{text-align:right}
 .read{font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap}
 .r-wait{background:#1baf7a1f;color:#0d8a5f}.r-soon{background:#eda1001f;color:#b07500}
 .r-now{background:#e349481a;color:#d03b3b}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:16px 0 0}
+.seg button{border:0;background:var(--card);color:var(--mut);font:600 13px/1 inherit;
+font-family:inherit;padding:9px 16px;cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff}
+.smalln{display:none;font-size:12.5px;color:#b07500;margin:8px 0 0}
+.smalln.show{display:block}
 .note{font-size:13.5px;color:var(--mut);background:var(--card);border:1px solid var(--line);
 border-radius:12px;padding:14px 18px;margin-top:14px}
 footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);
@@ -68,6 +74,21 @@ their final hours, updated nightly &middot; generated __GENERATED__ &middot;
     exists in only about <span id="g6late">-</span>% of games, at a
     <span id="prem6">-</span>% per-seat premium over the pair floor. The best big-block deals of a
     game week usually appear days out and get picked off within hours.</p></div>
+</div>
+
+<div class="seg" role="group" aria-label="Data scope">
+  <button id="segL" class="on">Entire NHL (<span class="segLn"></span> games)</button>
+  <button id="segK">Kraken home games (<span class="segKn"></span>)</button>
+</div>
+<p class="smalln" id="smalln">Kraken sample is small so far; treat these as directional. The toggle
+re-cuts the three charts on this page to Kraken home games only.</p>
+<div class="chartbox" style="margin-top:14px">
+  <canvas id="qtyFloorChart" height="180" role="img"
+    aria-label="Line chart of the median cheapest price for 2, 4, and 6 seats together by hours before the game"></canvas>
+  <p class="cap">The cards above, as data: the median cheapest per-seat price for 2, 4, and 6 seats
+  together (better tiers), by hours before puck drop, across <span class="nGames2">-</span> games.
+  The pair floor barely moves; each step up in group size adds a premium that widens as the
+  game approaches and blocks fragment.</p>
 </div>
 
 <h2>Myth check: prices do not crash at puck drop</h2>
@@ -118,7 +139,8 @@ Data through __GENERATED__. <a href="deep.html">Methodology, distributions, and 
 <script>const DATA = /*__DATA__*/null;</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-const L = DATA.league, K = DATA.kraken;
+const L = DATA.league, K = DATA.kraken, KA = DATA.kraken_agg;
+let SCOPE = L;
 const css = getComputedStyle(document.documentElement);
 const ink = css.getPropertyValue('--mut').trim(), grid = css.getPropertyValue('--grid').trim();
 document.getElementById('nGames').textContent = L.n_games;
@@ -127,18 +149,19 @@ const availLast = L.avail_g6[L.avail_g6.length - 1];
 document.getElementById('g6late').textContent = availLast.pct;
 document.getElementById('prem6').textContent = Math.round((L.premium_t1.g6 - 1) * 100);
 
-new Chart(document.getElementById('bottomChart'), {
+const bottomChart = new Chart(document.getElementById('bottomChart'), {
   type: 'bar',
   data: { labels: L.bottom_buckets.map(b => b.label),
     datasets: [{ data: L.bottom_buckets.map(b => b.n), backgroundColor: '#2a78d6',
       borderRadius: 4, maxBarThickness: 56 }] },
   options: { plugins: { legend: { display: false } },
-    scales: { x: { grid: { display: false }, ticks: { color: ink } },
-      y: { grid: { color: grid }, ticks: { color: ink },
+    scales: { x: { grid: { display: false }, ticks: { color: ink },
+        title: { display: true, text: 'when the cheapest moment occurred (before puck drop)', color: ink } },
+      y: { grid: { color: grid }, ticks: { color: ink, precision: 0 },
         title: { display: true, text: 'games', color: ink } } } }
 });
 
-new Chart(document.getElementById('availChart'), {
+const availChart = new Chart(document.getElementById('availChart'), {
   type: 'line',
   data: { datasets: [
     { label: '4 together', data: L.avail_g4.map(a => ({ x: a.h, y: a.pct })),
@@ -154,6 +177,47 @@ new Chart(document.getElementById('availChart'), {
         ticks: { color: ink, callback: v => v + '%' },
         title: { display: true, text: 'games with a block available', color: ink } } } }
 });
+
+const QCOL = { g2: '#2a78d6', g4: '#eda100', g6: '#eb6834' };
+const QDASH = { g2: [], g4: [8,3,2,3], g6: [6,3] };
+const qtyFloorChart = new Chart(document.getElementById('qtyFloorChart'), {
+  type: 'line',
+  data: { datasets: ['g2', 'g4', 'g6'].map(f => ({
+    label: f.slice(1) + ' together',
+    data: L.floor_by_qty.filter(r => r[f] != null).map(r => ({ x: r.h, y: r[f] })),
+    borderColor: QCOL[f], backgroundColor: QCOL[f], borderWidth: 2,
+    borderDash: QDASH[f], pointRadius: 0, tension: 0 })) },
+  options: { interaction: { mode: 'nearest', intersect: false },
+    plugins: { legend: { labels: { color: ink, boxWidth: 14, boxHeight: 3 } },
+      tooltip: { callbacks: { label: c => c.dataset.label + ': $' + Math.round(c.parsed.y) + '/seat (median game)' } } },
+    scales: { x: { type: 'linear', reverse: true, min: 0, max: 8,
+        title: { display: true, text: 'hours before puck drop', color: ink },
+        grid: { display: false }, ticks: { color: ink, stepSize: 2 } },
+      y: { grid: { color: grid }, ticks: { color: ink, callback: v => '$' + v },
+        title: { display: true, text: 'median cheapest $/seat', color: ink } } } }
+});
+
+document.querySelectorAll('.segLn').forEach(e => e.textContent = L.n_games);
+document.querySelectorAll('.segKn').forEach(e => e.textContent = KA.n_games);
+function setScope(kraken) {
+  SCOPE = kraken ? KA : L;
+  document.getElementById('segL').classList.toggle('on', !kraken);
+  document.getElementById('segK').classList.toggle('on', kraken);
+  document.getElementById('smalln').classList.toggle('show', kraken);
+  bottomChart.data.datasets[0].data = SCOPE.bottom_buckets.map(b => b.n);
+  bottomChart.update();
+  availChart.data.datasets[0].data = SCOPE.avail_g4.map(a => ({ x: a.h, y: a.pct }));
+  availChart.data.datasets[1].data = SCOPE.avail_g6.map(a => ({ x: a.h, y: a.pct }));
+  availChart.update();
+  ['g2', 'g4', 'g6'].forEach((f, i) => {
+    qtyFloorChart.data.datasets[i].data =
+      SCOPE.floor_by_qty.filter(r => r[f] != null).map(r => ({ x: r.h, y: r[f] }));
+  });
+  qtyFloorChart.update();
+  document.querySelectorAll('.nGames2').forEach(e => e.textContent = SCOPE.n_games);
+}
+document.getElementById('segL').onclick = () => setScope(false);
+document.getElementById('segK').onclick = () => setScope(true);
 
 const dw = L.dow.weekday, we = L.dow.weekend;
 document.getElementById('dowText').innerHTML =

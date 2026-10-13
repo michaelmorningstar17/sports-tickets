@@ -74,9 +74,11 @@ def pass_stats(listings):
     }
 
 
-def analyze_league(games, meta, now_utc):
+def analyze_league(games, meta, now_utc, eids=None):
     per_game = {}
     for eid, passes in games.items():
+        if eids is not None and eid not in eids:
+            continue
         pts = sorted(((m, pass_stats(ls)) for m, ls in passes.items()),
                      key=lambda t: -t[0])
         pre = [(m, st) for m, st in pts if m >= -5]
@@ -152,6 +154,22 @@ def analyze_league(games, meta, now_utc):
     agg['avail_g4'] = avail('g4')
     agg['avail_g6'] = avail('g6')
 
+    # median dollar floor by quantity (lower-type tiers) at each grid point
+    fq = []
+    for h in HOURS_GRID:
+        row = {'h': h}
+        for f in ('g2', 'g4', 'g6'):
+            vals = []
+            for g in per_game.values():
+                target = h * 60
+                near = min(g['pts'], key=lambda t: abs(t[0] - target))
+                if abs(near[0] - target) <= 45 and near[1][f] is not None:
+                    vals.append(near[1][f])
+            row[f] = round(statistics.median(vals)) if vals else None
+            row['n' + f[1]] = len(vals)
+        fq.append(row)
+    agg['floor_by_qty'] = fq
+
     # group premium: median g4/g2 and g6/g2 ratio at T-6h and T-1h
     for label, hrs in (('t6', 6), ('t1', 1)):
         r4, r6 = [], []
@@ -223,9 +241,12 @@ def main():
     conn = psycopg.connect(clean_dsn(os.environ['DATABASE_URL']))
     games, meta = fetch(conn)
     now = datetime.now(timezone.utc)
+    kraken_eids = {eid for eid, m in meta.items()
+                   if m['venue'] == KRAKEN_VENUE and m['finished']}
     data = {
         'generated': now.strftime('%B %d, %Y %H:%M UTC'),
         'league': analyze_league(games, meta, now),
+        'kraken_agg': analyze_league(games, meta, now, eids=kraken_eids),
         'kraken': analyze_kraken(games, meta, conn),
         'n_games_total': len(games),
         'n_rows': conn.execute('SELECT count(*) FROM listing_snapshots').fetchone()[0],
