@@ -2,6 +2,14 @@
 
 Newest first. One line of context, one of why.
 
+- **2026-10-13: public GitHub Pages dashboard, nightly regeneration.**
+  Why: Michael wants a shareable 'when to buy' analysis that stays current
+  as the season accrues; Pages + daily workflow needs no new vendors. Two
+  audiences (casual / data-curious) per his call. Headline findings baked
+  in: bottom timing bimodal (median drop from T-6h only 16%), contiguity is
+  the scarce good (6-together 85%→45% availability, premium 24%→50%),
+  weekday/weekend moves price level not timing.
+
 - **2026-09-23: Michael bought 6x Lower 22 row J at $33/seat (display) for
   Kraken-Flames 9/24.** Why: top-1% stable-regime deal score (0.402), group
   tripwire had fired, league data showed group blocks die T-6h..T-2h.

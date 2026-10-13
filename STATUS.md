@@ -4,6 +4,14 @@ _Last updated: 2026-09-22 (evening)_
 
 ## Current state
 
+- **Dashboard live (2026-10-13):** https://michaelmorningstar17.github.io/sports-tickets/
+  — "when to buy Kraken tickets", two versions (index = plain advice,
+  deep.html = methodology/distributions). Regenerated daily by
+  .github/workflows/dashboard.yml from dashboard/generate.py + templates.
+  Public page; prices shown on base-price basis with display caveat.
+- Storage watch: ~207 MB of 500 MB free tier (Oct 13), ~30 MB/week burn.
+  Aggregate-and-prune job still TODO before ~late December.
+
 - Pipeline fully operational and unattended: Neon trigger → pinger →
   GitHub Actions → collector → Neon Postgres, every 15 minutes.
   Since 2026-09-21 23:45 PT: 67/67 successful runs, ~64 expected fires.
