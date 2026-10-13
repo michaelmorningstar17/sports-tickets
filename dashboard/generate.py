@@ -170,6 +170,32 @@ def analyze_league(games, meta, now_utc, eids=None):
         fq.append(row)
     agg['floor_by_qty'] = fq
 
+    # 'waiting backfires' risk: by hour h, the block is gone OR >=20% pricier
+    # than the same game's T-6h block price. Only games that had a block at T-6h.
+    for f in ('g4', 'g6'):
+        out = []
+        for h in HOURS_GRID:
+            gone = spike = tot = 0
+            for g in per_game.values():
+                ref = g['ref'][f]
+                if ref is None:
+                    continue
+                target = h * 60
+                near = min(g['pts'], key=lambda t: abs(t[0] - target))
+                if abs(near[0] - target) > 45:
+                    continue
+                tot += 1
+                v = near[1][f]
+                if v is None:
+                    gone += 1
+                elif v >= ref * 1.2:
+                    spike += 1
+            out.append({'h': h,
+                        'gone': round(gone / tot * 100) if tot else None,
+                        'spike': round(spike / tot * 100) if tot else None,
+                        'n': tot})
+        agg['regret_' + f] = out
+
     # group premium: median g4/g2 and g6/g2 ratio at T-6h and T-1h
     for label, hrs in (('t6', 6), ('t1', 1)):
         r4, r6 = [], []
