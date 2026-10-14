@@ -34,7 +34,10 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         # Falls back to the committed data snapshot when the database is
         # unreachable (e.g. quota block), so UI changes still deploy.
-        run: python dashboard/generate.py || python dashboard/generate.py --cached
+        # OUTAGE PIN until Nov 1: DATABASE_URL points at the thin buffer DB, so
+        # render only from the committed cache. Restore the fallback line after
+        # the Neon merge: python dashboard/generate.py || python dashboard/generate.py --cached
+        run: python dashboard/generate.py --cached
 
       - uses: actions/configure-pages@v5
 
