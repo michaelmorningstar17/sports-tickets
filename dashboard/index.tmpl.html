@@ -691,7 +691,7 @@ function drawMap() {
     const prof = sectionProfile(i);
     const rec = recommendIdx(prof);
     const grp = document.createElementNS(NS, 'g');
-    const W = 100, H = 46;
+    const W = 126, H = 56;
     const rect = document.createElementNS(NS, 'rect');
     rect.setAttribute('x', sec.x - W/2); rect.setAttribute('y', sec.y - H/2);
     rect.setAttribute('width', W); rect.setAttribute('height', H);
@@ -711,9 +711,9 @@ function drawMap() {
       grp.appendChild(t);
     };
     if (rec < 0) {
-      line('-', 7, 18, 400, 0.9);
+      line('-', 8, 20, 400, 0.9);
     } else {
-      line(PROFILE_POINTS[rec].label, 7, 20, 600, 1);
+      line(PROFILE_POINTS[rec].label, 9, 26, 600, 1);
     }
     grp.addEventListener('mouseenter', () => showMapTip(sec, i, v, grp));
     grp.addEventListener('mouseleave', hideMapTip);
