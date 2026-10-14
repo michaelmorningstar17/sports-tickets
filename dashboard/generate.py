@@ -305,8 +305,10 @@ def build_map_data(games_listings, meta, sec_floor_source):
             best[qk] = col
         rp = None
         if m['finished']:
-            POINTS = [480, 420, 360, 300, 240, 180, 120, 90, 60, 45, 30, 15, 0, -15, -30]
-            TOLS = [150, 40, 40, 30, 30, 25, 20, 14, 14, 10, 10, 10, 10, 10, 12]
+            POINTS = ([1440] + [h * 60 for h in range(23, 7, -1)] +
+                      [420, 360, 300, 240, 180, 120, 90, 60, 45, 30, 15, 0, -15, -30])
+            TOLS = ([240] + [35] * 16 +
+                    [40, 40, 30, 30, 25, 20, 14, 14, 10, 10, 10, 10, 10, 12])
             raw = games_listings.get(eid, {})
             if raw:
                 keys = sorted(raw.keys(), reverse=True)

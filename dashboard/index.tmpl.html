@@ -486,21 +486,26 @@ function shortWhen(m) {
     : m >= 60 ? 'T-' + (Math.round(m/6)/10) + 'h'
     : m >= 0 ? 'T-' + Math.round(m) + 'm' : 'T+' + Math.round(-m) + 'm';
 }
-const PROFILE_POINTS = [
-  { t: 420, tol: 50, label: '7h out' },
-  { t: 360, tol: 45, label: '6h out' },
-  { t: 300, tol: 40, label: '5h out' },
-  { t: 240, tol: 35, label: '4h out' },
-  { t: 180, tol: 30, label: '3h out' },
-  { t: 120, tol: 25, label: '2h out' },
-  { t: 90, tol: 17, label: '90m out' },
-  { t: 60, tol: 17, label: '1h out' },
-  { t: 45, tol: 16, label: '45m out' },
-  { t: 30, tol: 14, label: '30m out' },
-  { t: 15, tol: 13, label: '15m out' },
-  { t: 0, tol: 13, label: 'puck drop' },
-  { t: -15, tol: 13, label: '+15m' },
-  { t: -30, tol: 16, label: '+30m' }];
+const PROFILE_POINTS = (() => {
+  const pts = [];
+  for (let h2 = 23; h2 >= 8; h2--) pts.push({ t: h2 * 60, tol: 40, label: h2 + 'h out' });
+  return pts.concat([
+    { t: 420, tol: 50, label: '7h out' },
+    { t: 360, tol: 45, label: '6h out' },
+    { t: 300, tol: 40, label: '5h out' },
+    { t: 240, tol: 35, label: '4h out' },
+    { t: 180, tol: 30, label: '3h out' },
+    { t: 120, tol: 25, label: '2h out' },
+    { t: 90, tol: 17, label: '90m out' },
+    { t: 60, tol: 17, label: '1h out' },
+    { t: 45, tol: 16, label: '45m out' },
+    { t: 30, tol: 14, label: '30m out' },
+    { t: 15, tol: 13, label: '15m out' },
+    { t: 0, tol: 13, label: 'puck drop' },
+    { t: -15, tol: 13, label: '+15m' },
+    { t: -30, tol: 16, label: '+30m' }]);
+})();
+const BASELINE_T = 1440, BASELINE_TOL = 240;
 function median(arr) {
   const a2 = [...arr].sort((x, y) => x - y);
   const mid = Math.floor(a2.length / 2);
@@ -510,7 +515,7 @@ function frameCnts(f) {
   if (!f.c) return null;
   return f.c[MQTY] || f.c.a;
 }
-const POINT_IDX = [420, 360, 300, 240, 180, 120, 90, 60, 45, 30, 15, 0, -15, -30];
+const POINT_IDX = PROFILE_POINTS.map(p2 => p2.t);
 function rowProfile(secId) {
   const perPoint = PROFILE_POINTS.map(() => []);
   const perCount = PROFILE_POINTS.map(() => []);
@@ -573,7 +578,7 @@ function sectionProfile(i) {
         Math.abs(p2[0] - t) < Math.abs(best[0] - t) ? p2 : best);
       return Math.abs(n2[0] - t) <= tol ? n2[1] : null;
     };
-    const baseline = near(pts, 480, 150);
+    const baseline = near(pts, BASELINE_T, BASELINE_TOL);
     if (!baseline) return;
     games++;
     PROFILE_POINTS.forEach((c, ci) => {
@@ -627,7 +632,7 @@ function showMapTip(sec, i, v, grp) {
   }
   if (prof) {
     html += '<div style="display:flex;gap:6px;font-size:11px;margin-top:6px">' +
-      '<span style="width:62px"></span><span style="flex:5">price vs baseline (8h out)</span>' +
+      '<span style="width:62px"></span><span style="flex:5">price vs baseline (24h out)</span>' +
       '<span style="width:32px"></span><span style="width:18px"></span><span style="flex:4">avg. # listings</span><span style="width:24px"></span></div>';
     const span = Math.max(...prof.pct.filter(x => x != null), 100);
     const cspan = Math.max(...prof.cnt.filter(x => x != null), 1);
@@ -641,17 +646,17 @@ function showMapTip(sec, i, v, grp) {
           '<span style="font-size:9.5px;color:var(--faint)">after puck drop \u00b7 informational only</span></div>';
       }
       const cn = prof.cnt[ci];
-      html += '<div style="display:flex;align-items:center;gap:6px;margin-top:2px">' +
-        '<span style="width:62px;text-align:right;color:var(--faint);font-size:10.5px">' +
+      html += '<div style="display:flex;align-items:center;gap:6px;margin-top:1px">' +
+        '<span style="width:62px;text-align:right;color:var(--faint);font-size:10px">' +
         PROFILE_POINTS[ci].label + '</span>' +
-        '<span style="flex:5;height:9px;background:var(--grid);border-radius:3px;position:relative">' +
+        '<span style="flex:5;height:8px;background:var(--grid);border-radius:3px;position:relative">' +
         (pc == null ? '' : '<span style="display:block;height:100%;width:' + Math.min(100, Math.round(pc/span*100)) +
         '%;background:' + (post ? '#378ADD'
           : ci === minIdx ? '#0ca30c' : '#378ADD') + ';border-radius:3px"></span>') +
         '</span><span style="width:32px;font-variant-numeric:tabular-nums;color:var(--ink);font-size:10.5px">' +
         (pc == null ? '-' : pc + '%') + '</span>' +
         '<span style="width:18px"></span>' +
-        '<span style="flex:4;height:9px;background:var(--grid);border-radius:3px;overflow:hidden">' +
+        '<span style="flex:4;height:8px;background:var(--grid);border-radius:3px;overflow:hidden">' +
         (cn == null ? '' : '<span style="display:block;height:100%;width:' + Math.round(cn/cspan*100) +
         '%;background:#8a8880;border-radius:3px"></span>') +
         '</span><span style="width:24px;font-variant-numeric:tabular-nums;color:var(--ink);font-size:10.5px">' +
