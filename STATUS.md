@@ -11,6 +11,13 @@ _Last updated: 2026-09-22 (evening)_
   Supabase free) via DATABASE_URL secret swap; merge back after. Collector
   failing since ~21:45 PT Oct 13. TODO regardless: rewrite generate.py to
   aggregate in SQL (cuts egress ~30x).
+  Nov 1 restore scope (beyond merge + secret flip + unpin --cached):
+  (1) SQL-side aggregation in generate.py (egress fix); (2) compute map
+  tooltip profile points server-side from FULL pass history (replaces
+  thinned-frame client sampling, kills the dash gaps); (3) regeneration
+  auto-activates staged features: per-quantity map data, per-section
+  listing counts, row-level profiles (rp). Collector buffering to
+  Supabase meanwhile (BUFFER_DATABASE_URL in .env.local).
 
 - **Dashboard live (2026-10-13):** https://michaelmorningstar17.github.io/sports-tickets/
   — "when to buy Kraken tickets", two versions (index = plain advice,
