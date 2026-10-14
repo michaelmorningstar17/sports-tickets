@@ -487,20 +487,20 @@ function shortWhen(m) {
     : m >= 0 ? 'T-' + Math.round(m) + 'm' : 'T+' + Math.round(-m) + 'm';
 }
 const PROFILE_POINTS = [
-  { t: 420, tol: 40, label: '7h out' },
-  { t: 360, tol: 40, label: '6h out' },
-  { t: 300, tol: 30, label: '5h out' },
-  { t: 240, tol: 30, label: '4h out' },
-  { t: 180, tol: 25, label: '3h out' },
-  { t: 120, tol: 20, label: '2h out' },
-  { t: 90, tol: 14, label: '90m out' },
-  { t: 60, tol: 14, label: '1h out' },
-  { t: 45, tol: 10, label: '45m out' },
-  { t: 30, tol: 10, label: '30m out' },
-  { t: 15, tol: 10, label: '15m out' },
-  { t: 0, tol: 10, label: 'puck drop' },
-  { t: -15, tol: 10, label: '+15m' },
-  { t: -30, tol: 12, label: '+30m' }];
+  { t: 420, tol: 50, label: '7h out' },
+  { t: 360, tol: 45, label: '6h out' },
+  { t: 300, tol: 40, label: '5h out' },
+  { t: 240, tol: 35, label: '4h out' },
+  { t: 180, tol: 30, label: '3h out' },
+  { t: 120, tol: 25, label: '2h out' },
+  { t: 90, tol: 17, label: '90m out' },
+  { t: 60, tol: 17, label: '1h out' },
+  { t: 45, tol: 16, label: '45m out' },
+  { t: 30, tol: 14, label: '30m out' },
+  { t: 15, tol: 13, label: '15m out' },
+  { t: 0, tol: 13, label: 'puck drop' },
+  { t: -15, tol: 13, label: '+15m' },
+  { t: -30, tol: 16, label: '+30m' }];
 function median(arr) {
   const a2 = [...arr].sort((x, y) => x - y);
   const mid = Math.floor(a2.length / 2);
