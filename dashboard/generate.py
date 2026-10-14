@@ -287,14 +287,20 @@ def build_map_data(games, meta, sec_floor_source):
             ordered_f = [ordered[i] for i in idx]
         else:
             ordered_f = ordered
-        frames = [{'m': mins, 'p': [secp.get(k) for k in sec_ids]}
+        QKEYS = ('a', '2', '4', '6')
+        frames = [{'m': mins,
+                   'p': {qk: [secp.get(k, {}).get(qk) for k in sec_ids]
+                         for qk in QKEYS}}
                   for mins, secp in ordered_f]
-        best = []
-        for k in sec_ids:
-            cands = [(secp[k], mins) for mins, secp in ordered
-                     if secp.get(k) is not None and mins >= -5]
-            best.append({'p': min(cands)[0], 'm': min(cands, key=lambda c: c[0])[1]}
-                        if cands else None)
+        best = {}
+        for qk in QKEYS:
+            col = []
+            for k in sec_ids:
+                cands = [(secp[k][qk], mins) for mins, secp in ordered
+                         if secp.get(k, {}).get(qk) is not None and mins >= -5]
+                col.append({'p': min(cands)[0], 'm': min(cands, key=lambda c: c[0])[1]}
+                           if cands else None)
+            best[qk] = col
         out['games'].append({'name': m['name'].replace(' at Seattle Kraken', ''),
                              'date': m['date'], 'finished': m['finished'],
                              'frames': frames, 'best': best,
@@ -310,10 +316,11 @@ def build_map_data(games, meta, sec_floor_source):
         for g, m in reg:
             passes = sec_floor_source[g['_eid']]
             ordered_by_game.append(sorted(passes.items(), key=lambda t: -t[0]))
+        QKEYS = ('a', '2', '4', '6')
         avg_frames = []
         for gm in grid:
             tol = max(12, gm * 0.25)
-            per_sec = {k: [] for k in sec_ids}
+            per_sec = {qk: {k: [] for k in sec_ids} for qk in QKEYS}
             hit = False
             for ordered in ordered_by_game:
                 near = min(ordered, key=lambda t: abs(t[0] - gm))
@@ -321,19 +328,23 @@ def build_map_data(games, meta, sec_floor_source):
                     continue
                 hit = True
                 for k in sec_ids:
-                    v = near[1].get(k)
-                    if v is not None:
-                        per_sec[k].append(v)
+                    d = near[1].get(k, {})
+                    for qk in QKEYS:
+                        if d.get(qk) is not None:
+                            per_sec[qk][k].append(d[qk])
             if hit:
-                avg_frames.append({'m': gm, 'p': [
-                    round(statistics.median(per_sec[k])) if per_sec[k] else None
-                    for k in sec_ids]})
-        avg_best = []
-        for i, k in enumerate(sec_ids):
-            vals = [g['best'][i] for g, _ in reg if g['best'][i]]
-            avg_best.append({'p': round(statistics.median([v['p'] for v in vals])),
-                             'm': round(statistics.median([v['m'] for v in vals]))}
-                            if vals else None)
+                avg_frames.append({'m': gm, 'p': {qk: [
+                    round(statistics.median(per_sec[qk][k])) if per_sec[qk][k] else None
+                    for k in sec_ids] for qk in QKEYS}})
+        avg_best = {}
+        for qk in QKEYS:
+            col = []
+            for i, k in enumerate(sec_ids):
+                vals = [g['best'][qk][i] for g, _ in reg if g['best'][qk][i]]
+                col.append({'p': round(statistics.median([v['p'] for v in vals])),
+                            'm': round(statistics.median([v['m'] for v in vals]))}
+                           if vals else None)
+            avg_best[qk] = col
         out['games'].insert(0, {
             'name': f'Season average ({len(reg)} completed regular-season home games)',
             'date': '', 'finished': True,
@@ -389,8 +400,15 @@ def main():
         for mins, ls in games[eid].items():
             secp = {}
             for price, tier, qtys, sec in ls:
-                if sec and (sec not in secp or price < secp[sec]):
-                    secp[sec] = round(price)
+                if not sec:
+                    continue
+                d = secp.setdefault(sec, {})
+                if 'a' not in d or price < d['a']:
+                    d['a'] = round(price)
+                for q in (2, 4, 6):
+                    k = str(q)
+                    if q in qtys and (k not in d or price < d[k]):
+                        d[k] = round(price)
             per_pass[mins] = secp
         sec_floors[eid] = per_pass
     data = {

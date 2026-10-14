@@ -56,7 +56,7 @@ footer a{color:var(--accent)}
 their final hours, updated nightly &middot; generated __GENERATED__ &middot;
 <a href="deep.html">methodology &amp; full data &rarr;</a></p>
 
-<h2 style="margin-top:0">The short answer depends on how many seats you need</h2>
+<h2 style="margin-top:0">The best time to buy depends on how many seats you need</h2>
 <div class="cards">
   <div class="card"><span class="tag t-blue">1&ndash;2 tickets</span>
     <p class="verdict">Wait. Buy on game day.</p>
@@ -77,18 +77,26 @@ their final hours, updated nightly &middot; generated __GENERATED__ &middot;
     days out and get picked off within hours.</p></div>
 </div>
 
-<h2>The arena, priced over time</h2>
-<div class="chartbox" style="position:relative">
-  <p style="font-size:17px;font-weight:600;color:var(--ink);margin:0 0 2px">Where the deals live at Climate Pledge</p>
-  <p style="font-size:13px;color:var(--faint);margin:0 0 12px">Every section, from our snapshots of the
-  resale market. Replay a game&rsquo;s market hour by hour, or see each section&rsquo;s best price and
-  when it appeared.</p>
+<div class="chartbox" style="position:relative;margin-top:28px">
+  <p style="font-size:17px;font-weight:600;color:var(--ink);margin:0 0 2px">When is the price floor for each section, and what can I expect to pay?</p>
+  <p style="font-size:13px;color:var(--faint);margin:0 0 12px">Every section of Climate Pledge, from our
+  snapshots of the resale market: each section&rsquo;s best price and when it appeared, or replay a
+  game&rsquo;s market hour by hour. (This map is Kraken home games by nature; other arenas have
+  different buildings.)</p>
   <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px;font-size:13.5px;color:var(--mut)">
     <select id="mapGame" style="font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px"></select>
+    <select id="mapQty" style="font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px">
+      <option value="a" selected>Any quantity</option>
+      <option value="2">2 together</option>
+      <option value="4">4 together</option>
+      <option value="6">6 together</option>
+    </select>
     <span class="seg" style="margin:0">
-      <button id="mapModeReplay" class="on">Replay</button>
-      <button id="mapModeBest">Best price &amp; when</button>
+      <button id="mapModeBest" class="on">Best price &amp; when</button>
+      <button id="mapModeReplay">Replay</button>
     </span>
+    <span id="mapQtyNote" style="display:none;font-size:12px;color:#b07500">quantity split
+      arrives with the next full data refresh (Nov 1); showing any quantity</span>
   </div>
   <div id="mapReplayCtl" style="display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:13px;color:var(--mut)">
     <button id="mapPlay" style="border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:5px 14px;font:600 13px/1 inherit;cursor:pointer">&#9654; Play</button>
@@ -406,7 +414,16 @@ MAP.games.forEach((g, i) => {
   o.textContent = (g.date ? g.date.slice(0, 10) + ' \u00b7 ' : '') + g.name + (!g.date || g.finished ? '' : ' (so far)');
   gameSel.appendChild(o);
 });
-let MG = Math.max(0, MAP.games.findIndex(g => !g.date)), MMODE = 'replay', MFRAME = 0, mapTimer = null;
+let MG = Math.max(0, MAP.games.findIndex(g => !g.date)), MMODE = 'best', MFRAME = 0, mapTimer = null;
+let MQTY = 'a';
+function frameVals(frame) {
+  if (Array.isArray(frame.p)) return { vals: frame.p, legacy: true };
+  return { vals: frame.p[MQTY] || frame.p.a, legacy: !frame.p[MQTY] && MQTY !== 'a' };
+}
+function bestVals(g) {
+  if (Array.isArray(g.best)) return { vals: g.best, legacy: true };
+  return { vals: g.best[MQTY] || g.best.a, legacy: !g.best[MQTY] && MQTY !== 'a' };
+}
 gameSel.value = MG;
 
 const TIME_BANDS = [
@@ -444,7 +461,7 @@ const HIST_BUCKETS = [
   { min: -9999, label: 'after puck drop' }];
 const PLAYED = MAP.games.filter(g => g.date && g.finished);
 function sectionHist(i) {
-  const ms = PLAYED.map(g => g.best[i]).filter(b => b).map(b => b.m);
+  const ms = PLAYED.map(g => bestVals(g).vals[i]).filter(b => b).map(b => b.m);
   if (!ms.length) return null;
   const counts = HIST_BUCKETS.map(() => 0);
   ms.forEach(m => { counts[HIST_BUCKETS.findIndex(bk => m >= bk.min)]++; });
@@ -504,7 +521,10 @@ function drawMap() {
   const qs = quantiles(g);
   mapSvg.innerHTML = '<image href="https://maps.gametime.co/v2/key_arena/hockey/hockey-4.png" ' +
     'x="0" y="0" width="2560" height="1936" opacity="0.95"/>';
-  const vals = MMODE === 'replay' ? g.frames[MFRAME].p : g.best;
+  const vb = MMODE === 'replay' ? frameVals(g.frames[MFRAME]) : bestVals(g);
+  const vals = vb.vals;
+  document.getElementById('mapQtyNote').style.display =
+    (MQTY !== 'a' && vb.legacy) ? 'inline' : 'none';
   MAP.sections.forEach((sec, i) => {
     const v = vals[i];
     const grp = document.createElementNS(NS, 'g');
@@ -584,6 +604,7 @@ document.getElementById('mapPlay').onclick = () => {
 };
 document.getElementById('mapSlider').oninput = e => { mapStop(); MFRAME = +e.target.value; drawMap(); };
 gameSel.onchange = e => { mapStop(); MG = +e.target.value; MFRAME = 0; drawMap(); };
+document.getElementById('mapQty').onchange = e => { MQTY = e.target.value; drawMap(); };
 document.getElementById('mapModeReplay').onclick = () => { MMODE = 'replay';
   document.getElementById('mapModeReplay').classList.add('on');
   document.getElementById('mapModeBest').classList.remove('on'); drawMap(); };
