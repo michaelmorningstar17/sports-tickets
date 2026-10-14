@@ -468,6 +468,15 @@ const HIST_BUCKETS = [
   { min: 0, label: 'final hour' },
   { min: -9999, label: 'after puck drop' }];
 const PLAYED = MAP.games.filter(g => g.date && g.finished);
+const PLAYED_REG = PLAYED.filter(g => !/Preseason/.test(g.name));
+function profSource() {
+  const g = MAP.games[MG];
+  if (g.date && g.finished) return { list: [g], label: 'this game' };
+  if (!g.date) return { list: PLAYED_REG.length ? PLAYED_REG : PLAYED,
+    label: 'avg of ' + (PLAYED_REG.length ? PLAYED_REG : PLAYED).length + ' regular-season home games' };
+  return { list: PLAYED, label: 'history of ' + PLAYED.length +
+    ' played home games (this game has not been played yet)' };
+}
 function sectionHist(i) {
   const ms = PLAYED.map(g => bestVals(g).vals[i]).filter(b => b).map(b => b.m);
   if (!ms.length) return null;
@@ -511,7 +520,7 @@ function rowProfile(secId) {
   const perCount = PROFILE_POINTS.map(() => []);
   const perAbs = PROFILE_POINTS.map(() => []);
   let games = 0, have = false;
-  PLAYED.forEach(g => {
+  profSource().list.forEach(g => {
     if (!g.rp || !g.rp[secId]) return;
     have = true;
     const rows = Object.entries(g.rp[secId]).filter(([r]) => rowIn(r));
@@ -545,7 +554,7 @@ function sectionProfile(i) {
   const perCount = PROFILE_POINTS.map(() => []);
   const perAbs = PROFILE_POINTS.map(() => []);
   let games = 0, haveCounts = false;
-  PLAYED.forEach(g => {
+  profSource().list.forEach(g => {
     const pts = [], cnts = [];
     g.frames.forEach(f => {
       const val = frameVals(f).vals[i];
@@ -583,9 +592,8 @@ function showMapTip(sec, i, v, grp) {
   let html = '<div style="font-weight:600;color:var(--ink);font-size:13px">' +
     (sec.tier === 'Lower' || sec.tier === 'Loge' || sec.tier === 'Upper'
       ? sec.tier + ' ' + sec.id : sec.tier) +
-    ' <span style="font-weight:400;font-size:10.5px;color:var(--faint)">\u00b7 history of ' +
-    PLAYED.length + ' played home game' + (PLAYED.length > 1 ? 's' : '') +
-    ', not the selected game</span></div>';
+    ' <span style="font-weight:400;font-size:10.5px;color:var(--faint)">\u00b7 ' +
+    profSource().label + '</span></div>';
 
   let prof, rowNote = '';
   if (rowActive()) {
@@ -606,7 +614,7 @@ function showMapTip(sec, i, v, grp) {
     const minPct = Math.min(...preIdx.filter(x => x != null));
     const minIdx = preIdx.indexOf(minPct);
     html += '<div style="font-size:15px;font-weight:600;color:#0ca30c;margin:3px 0 6px">Best time to buy: ' +
-      PROFILE_POINTS[minIdx].label + (prof.abs[minIdx] != null ? ' \u00b7 typically $' + prof.abs[minIdx] + '/seat' : '') + '</div>';
+      PROFILE_POINTS[minIdx].label + (prof.abs[minIdx] != null ? ' \u00b7 ' + (prof.games > 1 ? 'typically ' : '') + '$' + prof.abs[minIdx] + '/seat' : '') + '</div>';
   }
   if (prof) {
     html += '<div style="display:flex;gap:6px;font-size:11px;margin-top:6px">' +
