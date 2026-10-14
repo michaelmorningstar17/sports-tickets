@@ -475,12 +475,20 @@ function shortWhen(m) {
     : m >= 0 ? 'T-' + Math.round(m) + 'm' : 'T+' + Math.round(-m) + 'm';
 }
 const PROFILE_POINTS = [
-  { t: 240, tol: 50, label: '4h out' },
-  { t: 120, tol: 30, label: '2h out' },
-  { t: 60, tol: 20, label: '1h out' },
-  { t: 30, tol: 14, label: '30m out' },
-  { t: 15, tol: 12, label: '15m out' },
-  { t: 0, tol: 12, label: 'puck drop' }];
+  { t: 420, tol: 40, label: '7h out' },
+  { t: 360, tol: 40, label: '6h out' },
+  { t: 300, tol: 30, label: '5h out' },
+  { t: 240, tol: 30, label: '4h out' },
+  { t: 180, tol: 25, label: '3h out' },
+  { t: 120, tol: 20, label: '2h out' },
+  { t: 90, tol: 14, label: '90m out' },
+  { t: 60, tol: 14, label: '1h out' },
+  { t: 45, tol: 10, label: '45m out' },
+  { t: 30, tol: 10, label: '30m out' },
+  { t: 15, tol: 10, label: '15m out' },
+  { t: 0, tol: 10, label: 'puck drop' },
+  { t: -15, tol: 10, label: '+15m' },
+  { t: -30, tol: 12, label: '+30m' }];
 function median(arr) {
   const a2 = [...arr].sort((x, y) => x - y);
   const mid = Math.floor(a2.length / 2);
@@ -530,13 +538,13 @@ function showMapTip(sec, i, v, grp) {
     html += '<div style="font-size:11px;margin-top:6px">typical price vs 8h out (= 100%), at the bot\u2019s snapshot times:</div>';
     const span = Math.max(...prof.pct.filter(x => x != null), 100);
     prof.pct.forEach((pc, ci) => {
-      html += '<div style="display:flex;align-items:center;gap:6px;margin-top:3px">' +
-        '<span style="width:70px;text-align:right;color:var(--faint);font-size:11px">' +
+      html += '<div style="display:flex;align-items:center;gap:6px;margin-top:2px">' +
+        '<span style="width:62px;text-align:right;color:var(--faint);font-size:10.5px">' +
         PROFILE_POINTS[ci].label + '</span>' +
-        '<span style="flex:1;height:11px;background:var(--grid);border-radius:3px;overflow:hidden">' +
+        '<span style="flex:1;height:9px;background:var(--grid);border-radius:3px;overflow:hidden">' +
         (pc == null ? '' : '<span style="display:block;height:100%;width:' + Math.round(pc/span*100) +
         '%;background:' + (pc <= 100 ? '#378ADD' : '#D97706') + ';border-radius:3px"></span>') +
-        '</span><span style="width:34px;font-variant-numeric:tabular-nums;color:var(--ink);font-size:11px">' +
+        '</span><span style="width:32px;font-variant-numeric:tabular-nums;color:var(--ink);font-size:10.5px">' +
         (pc == null ? '-' : pc + '%') + '</span></div>';
     });
     html += '<div style="font-size:10.5px;color:var(--faint);margin-top:3px">blue = cheaper than 8h out; orange = pricier \u00b7 median of ' + prof.games + ' played game' + (prof.games > 1 ? 's' : '') + '</div>';
@@ -567,7 +575,7 @@ function showMapTip(sec, i, v, grp) {
   let left = r.right - box.left + 10;
   if (left + 260 > box.width) left = r.left - box.left - 262;
   let top = r.top - box.top - 40;
-  top = Math.max(4, Math.min(top, box.height - 230));
+  top = Math.max(4, Math.min(top, box.height - tip.offsetHeight - 8));
   tip.style.left = Math.max(4, left) + 'px';
   tip.style.top = top + 'px';
 }
