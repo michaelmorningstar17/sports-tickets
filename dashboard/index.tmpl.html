@@ -77,12 +77,46 @@ their final hours, updated nightly &middot; generated __GENERATED__ &middot;
     days out and get picked off within hours.</p></div>
 </div>
 
+<h2>The arena, priced over time</h2>
+<div class="chartbox" style="position:relative">
+  <p style="font-size:17px;font-weight:600;color:var(--ink);margin:0 0 2px">Where the deals live at Climate Pledge</p>
+  <p style="font-size:13px;color:var(--faint);margin:0 0 12px">Every section, from our snapshots of the
+  resale market. Replay a game&rsquo;s market hour by hour, or see each section&rsquo;s best price and
+  when it appeared.</p>
+  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px;font-size:13.5px;color:var(--mut)">
+    <select id="mapGame" style="font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px"></select>
+    <span class="seg" style="margin:0">
+      <button id="mapModeReplay" class="on">Replay</button>
+      <button id="mapModeBest">Best price &amp; when</button>
+    </span>
+  </div>
+  <div id="mapReplayCtl" style="display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:13px;color:var(--mut)">
+    <button id="mapPlay" style="border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:5px 14px;font:600 13px/1 inherit;cursor:pointer">&#9654; Play</button>
+    <input id="mapSlider" type="range" min="0" value="0" style="flex:1">
+    <span id="mapWhen" style="min-width:150px;font-variant-numeric:tabular-nums"></span>
+  </div>
+  <div id="mapLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--mut);margin-bottom:6px"></div>
+  <div id="mapTip" style="display:none;position:absolute;z-index:6;pointer-events:none;
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    box-shadow:0 4px 14px rgba(0,0,0,.14);padding:12px 14px;width:252px;
+    font-size:12.5px;line-height:1.45;color:var(--mut)"></div>
+  <svg id="arenaMap" viewBox="0 0 2560 1936" style="width:100%;height:auto" role="img"
+    aria-label="Map of Climate Pledge Arena sections showing the cheapest listed price per section"></svg>
+  <p class="cap">Box shows the price and (in best mode) when it hit; hover any section for its name and history: when its price floor has hit across played games, and the best time to buy it. Each marker is a section at its real position in the building; the number is the
+  cheapest listed seat in that section (base price). In <b>Replay</b>, color deepens with price for that
+  game; gray means no listings in that section at that moment. In <b>Best price &amp; when</b>, color
+  shows <i>when</i> the section&rsquo;s cheapest moment happened on an orange-to-blue clock:
+  orange = the deal came early (8+ hours out), blue = it came late (final hour or after puck drop).
+  The scale is time, not good/bad. Unfinished games show best-so-far. The season average option is the per-section median across completed regular-season home games (preseason excluded) and sharpens as the season goes on. A few sections never list on
+  Gametime and don&rsquo;t appear. Arena map imagery served from Gametime.</p>
+</div>
+
+
 <div class="seg" role="group" aria-label="Data scope">
   <button id="segL" class="on">Entire NHL (<span class="segLn"></span> games)</button>
   <button id="segK">Kraken home games (<span class="segKn"></span>)</button>
 </div>
-<p class="smalln" id="smalln">Kraken sample is small so far; treat these as directional. The toggle
-re-cuts the three charts on this page to Kraken home games only.</p>
+<p class="smalln" id="smallnLead">Kraken sample is small so far; treat it as directional.</p>
 <div class="chartbox" style="margin-top:14px;position:relative">
   <div id="qtyTip" style="display:none;position:absolute;z-index:5;pointer-events:none;
     background:var(--card);border:1px solid var(--line);border-radius:10px;
@@ -114,55 +148,31 @@ re-cuts the three charts on this page to Kraken home games only.</p>
   softest markets still have blocks to price. Placeholder listings above 1.5x fair value count as gone.)</p>
 </div>
 
-<h2>The arena, priced over time</h2>
-<div class="chartbox" style="position:relative">
-  <p style="font-size:17px;font-weight:600;color:var(--ink);margin:0 0 2px">Where the deals live at Climate Pledge</p>
-  <p style="font-size:13px;color:var(--faint);margin:0 0 12px">Every section, from our snapshots of the
-  resale market. Replay a game&rsquo;s market hour by hour, or see each section&rsquo;s best price and
-  when it appeared.</p>
-  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px;font-size:13.5px;color:var(--mut)">
-    <select id="mapGame" style="font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px"></select>
-    <span class="seg" style="margin:0">
-      <button id="mapModeReplay" class="on">Replay</button>
-      <button id="mapModeBest">Best price &amp; when</button>
-    </span>
-  </div>
-  <div id="mapReplayCtl" style="display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:13px;color:var(--mut)">
-    <button id="mapPlay" style="border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:5px 14px;font:600 13px/1 inherit;cursor:pointer">&#9654; Play</button>
-    <input id="mapSlider" type="range" min="0" value="0" style="flex:1">
-    <span id="mapWhen" style="min-width:150px;font-variant-numeric:tabular-nums"></span>
-  </div>
-  <div id="mapLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--mut);margin-bottom:6px"></div>
-  <div id="mapTip" style="display:none;position:absolute;z-index:6;pointer-events:none;
-    background:var(--card);border:1px solid var(--line);border-radius:10px;
-    box-shadow:0 4px 14px rgba(0,0,0,.14);padding:12px 14px;width:252px;
-    font-size:12.5px;line-height:1.45;color:var(--mut)"></div>
-  <svg id="arenaMap" viewBox="0 0 2560 1936" style="width:100%;height:auto" role="img"
-    aria-label="Map of Climate Pledge Arena sections showing the cheapest listed price per section"></svg>
-  <p class="cap">Hover any section for its history: when its price floor has hit across played games, and the best time to buy it. Each marker is a section at its real position in the building; the number is the
-  cheapest listed seat in that section (base price). In <b>Replay</b>, color deepens with price for that
-  game; gray means no listings in that section at that moment. In <b>Best price &amp; when</b>, color
-  shows <i>when</i> the section&rsquo;s cheapest moment happened, in the same language as the chart
-  above: green = the deal came in the final hour (waiting paid there), through red = the deal came more
-  than 4 hours out (waiting would have cost you). Unfinished games show best-so-far. The season average option is the per-section median across completed regular-season home games (preseason excluded) and sharpens as the season goes on. A few sections never list on
-  Gametime and don&rsquo;t appear. Arena map imagery served from Gametime.</p>
-</div>
-
 <h2>Myth check: prices do not crash at puck drop</h2>
+<div class="seg" role="group" aria-label="Data scope">
+  <button id="segLMyth" class="on">Entire NHL (<span class="segLn"></span> games)</button>
+  <button id="segKMyth">Kraken home games (<span class="segKn"></span>)</button>
+</div>
+<p class="smalln" id="smallnMyth">Kraken sample is small so far; treat it as directional.</p>
 <div class="chartbox">
   <canvas id="bottomChart" height="170" role="img"
     aria-label="Bar chart of when each game's cheapest moment occurred"></canvas>
   <p class="cap">When the cheapest moment of the final 8 hours actually happened, across
-  <span class="nGames2">-</span> games. Nearly half the time the floor was already in by mid-afternoon;
+  <span class="nGamesMyth">-</span> games. Nearly half the time the floor was already in by mid-afternoon;
   the median game's cheapest seat at 15 minutes before puck drop costs <b>more</b> than it did six hours
   earlier. Waiting past T-2h is a selection game (fewer, worse seats), not a price game.</p>
 </div>
 
 <h2>If you need seats together, the clock is against you</h2>
+<div class="seg" role="group" aria-label="Data scope">
+  <button id="segLAvail" class="on">Entire NHL (<span class="segLn"></span> games)</button>
+  <button id="segKAvail">Kraken home games (<span class="segKn"></span>)</button>
+</div>
+<p class="smalln" id="smallnAvail">Kraken sample is small so far; treat it as directional.</p>
 <div class="chartbox">
   <canvas id="availChart" height="170" role="img"
     aria-label="Line chart of share of games with 4-together and 6-together availability by hours before the game"></canvas>
-  <p class="cap">Share of games where a block of 4 (or 6) seats together still existed in the better
+  <p class="cap">Share of <span class="nGamesAvail">-</span> games where a block of 4 (or 6) seats together still existed in the better
   tiers, by hours before the game. Pairs (not shown) stay near 100% throughout. This is why the advice
   above splits by quantity: the market quietly prices <i>seats-together</i> as its scarcest good.</p>
 </div>
@@ -197,11 +207,13 @@ Data through __GENERATED__. <a href="deep.html">Methodology, distributions, and 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 const L = DATA.league, K = DATA.kraken, KA = DATA.kraken_agg;
-let SCOPE = L;
+let SCOPE = L, SCOPE_MYTH = L, SCOPE_AVAIL = L;
 const css = getComputedStyle(document.documentElement);
 const ink = css.getPropertyValue('--mut').trim(), grid = css.getPropertyValue('--grid').trim();
 document.getElementById('nGames').textContent = L.n_games;
 document.querySelectorAll('.nGames2').forEach(e => e.textContent = L.n_games);
+document.querySelectorAll('.nGamesMyth').forEach(e => e.textContent = L.n_games);
+document.querySelectorAll('.nGamesAvail').forEach(e => e.textContent = L.n_games);
 document.getElementById('g6late').textContent =
   (() => { const r = L.regret_g6[L.regret_g6.length - 1]; return r.gone + r.spike; })();
 
@@ -330,21 +342,27 @@ document.getElementById('g6late').textContent =
 
 document.querySelectorAll('.segLn').forEach(e => e.textContent = L.n_games);
 document.querySelectorAll('.segKn').forEach(e => e.textContent = KA.n_games);
-function setScope(kraken) {
-  SCOPE = kraken ? KA : L;
-  document.getElementById('segL').classList.toggle('on', !kraken);
-  document.getElementById('segK').classList.toggle('on', kraken);
-  document.getElementById('smalln').classList.toggle('show', kraken);
-  bottomChart.data.datasets[0].data = SCOPE.bottom_buckets.map(b => b.n);
-  bottomChart.update();
-  availChart.data.datasets[0].data = SCOPE.avail_g4.map(a => ({ x: a.h, y: a.pct }));
-  availChart.data.datasets[1].data = SCOPE.avail_g6.map(a => ({ x: a.h, y: a.pct }));
-  availChart.update();
-  renderQty();
-  document.querySelectorAll('.nGames2').forEach(e => e.textContent = SCOPE.n_games);
+function wireToggle(idL, idK, idNote, apply) {
+  const set = kraken => {
+    document.getElementById(idL).classList.toggle('on', !kraken);
+    document.getElementById(idK).classList.toggle('on', kraken);
+    document.getElementById(idNote).classList.toggle('show', kraken);
+    apply(kraken ? KA : L);
+  };
+  document.getElementById(idL).onclick = () => set(false);
+  document.getElementById(idK).onclick = () => set(true);
 }
-document.getElementById('segL').onclick = () => setScope(false);
-document.getElementById('segK').onclick = () => setScope(true);
+wireToggle('segL', 'segK', 'smallnLead', S => { SCOPE = S; renderQty();
+  document.querySelectorAll('.nGames2').forEach(e => e.textContent = S.n_games); });
+wireToggle('segLMyth', 'segKMyth', 'smallnMyth', S => { SCOPE_MYTH = S;
+  bottomChart.data.datasets[0].data = S.bottom_buckets.map(b => b.n);
+  bottomChart.update();
+  document.querySelectorAll('.nGamesMyth').forEach(e => e.textContent = S.n_games); });
+wireToggle('segLAvail', 'segKAvail', 'smallnAvail', S => { SCOPE_AVAIL = S;
+  availChart.data.datasets[0].data = S.avail_g4.map(a => ({ x: a.h, y: a.pct }));
+  availChart.data.datasets[1].data = S.avail_g6.map(a => ({ x: a.h, y: a.pct }));
+  availChart.update();
+  document.querySelectorAll('.nGamesAvail').forEach(e => e.textContent = S.n_games); });
 
 const dw = L.dow.weekday, we = L.dow.weekend;
 document.getElementById('dowText').innerHTML =
@@ -392,10 +410,12 @@ let MG = Math.max(0, MAP.games.findIndex(g => !g.date)), MMODE = 'replay', MFRAM
 gameSel.value = MG;
 
 const TIME_BANDS = [
-  { min: 240, color: '#d03b3b', txt: '#fff', label: 'over 4h before (had to buy early)' },
-  { min: 120, color: '#ec835a', txt: '#4A1B0C', label: '2-4h' },
-  { min: 60, color: '#eda100', txt: '#412402', label: '1-2h' },
-  { min: -9999, color: '#0ca30c', txt: '#fff', label: 'final hour or later (waiting paid)' }];
+  { min: 481, color: '#9A3412', txt: '#fff', label: 'over 8h before' },
+  { min: 241, color: '#D97706', txt: '#431407', label: '8-4h' },
+  { min: 121, color: '#FAC775', txt: '#633806', label: '2-4h' },
+  { min: 61, color: '#B5D4F4', txt: '#0C447C', label: '1-2h' },
+  { min: 0, color: '#378ADD', txt: '#fff', label: 'final hour' },
+  { min: -9999, color: '#0C447C', txt: '#fff', label: 'after puck drop' }];
 const PRICE_RAMP = ['#E6F1FB', '#B5D4F4', '#85B7EB', '#378ADD', '#185FA5'];
 
 function mapWhenLabel(m) {
@@ -416,11 +436,12 @@ function priceColor(v, qs) {
   return PRICE_RAMP[i];
 }
 const HIST_BUCKETS = [
-  { min: 241, label: 'over 4h out' },
+  { min: 481, label: 'over 8h out' },
+  { min: 241, label: '8-4h' },
   { min: 121, label: '2-4h' },
   { min: 61, label: '1-2h' },
-  { min: 31, label: '30-60m' },
-  { min: -9999, label: '\u226430m / after start' }];
+  { min: 0, label: 'final hour' },
+  { min: -9999, label: 'after puck drop' }];
 const PLAYED = MAP.games.filter(g => g.date && g.finished);
 function sectionHist(i) {
   const ms = PLAYED.map(g => g.best[i]).filter(b => b).map(b => b.m);
@@ -431,7 +452,8 @@ function sectionHist(i) {
   return { counts, n: ms.length, median: sortedMs[Math.floor(sortedMs.length / 2)] };
 }
 function shortWhen(m) {
-  return m >= 60 ? 'T-' + (Math.round(m/6)/10) + 'h'
+  return m >= 2880 ? 'T-' + Math.round(m/1440) + 'd'
+    : m >= 60 ? 'T-' + (Math.round(m/6)/10) + 'h'
     : m >= 0 ? 'T-' + Math.round(m) + 'm' : 'T+' + Math.round(-m) + 'm';
 }
 function showMapTip(sec, i, v, grp) {
@@ -487,7 +509,7 @@ function drawMap() {
     const v = vals[i];
     const grp = document.createElementNS(NS, 'g');
     const three = MMODE !== 'replay';
-    const W = 96, H = three ? 82 : 58;
+    const W = 100, H = three ? 66 : 46;
     const rect = document.createElementNS(NS, 'rect');
     rect.setAttribute('x', sec.x - W/2); rect.setAttribute('y', sec.y - H/2);
     rect.setAttribute('width', W); rect.setAttribute('height', H);
@@ -514,20 +536,17 @@ function drawMap() {
       t.textContent = txt;
       grp.appendChild(t);
     };
-    const secLabel = 'Sec ' + sec.id;
     if (v == null) {
-      line(secLabel, -2, 15, 400, 0.9);
-      line('-', 18, 15, 400, 0.9);
+      line('-', 7, 18, 400, 0.9);
     } else if (MMODE === 'replay') {
-      line(secLabel, -8, 14, 400, 0.85);
-      line('$' + v, 17, 23, 600, 1);
+      line('$' + v, 10, 30, 600, 1);
     } else {
       const m = v.m;
-      const when = m >= 60 ? 'T-' + (Math.round(m/6)/10) + 'h'
+      const when = m >= 2880 ? 'T-' + Math.round(m/1440) + 'd'
+        : m >= 60 ? 'T-' + (Math.round(m/6)/10) + 'h'
         : m >= 0 ? 'T-' + Math.round(m) + 'm' : 'T+' + Math.round(-m) + 'm';
-      line(secLabel, -22, 14, 400, 0.85);
-      line('$' + v.p, 3, 23, 600, 1);
-      line(when, 26, 15, 500, 0.95);
+      line('$' + v.p, -3, 28, 600, 1);
+      line(when, 22, 18, 500, 0.95);
     }
     grp.addEventListener('mouseenter', () => showMapTip(sec, i, v, grp));
     grp.addEventListener('mouseleave', hideMapTip);
