@@ -46,15 +46,15 @@ def fetch(conn):
                e.datetime_utc < now() AS finished,
                extract(dow FROM e.datetime_local) AS dow,
                round(EXTRACT(epoch FROM (e.datetime_utc - s.captured_at))/60) AS mins_before,
-               s.section_group, s.price_total_cents, s.lots, s.deal_score, s.section
+               s.section_group, s.price_total_cents, s.lots, s.deal_score, s.section, s.row
         FROM events e JOIN listing_snapshots s USING (event_id)
         WHERE s.deal_score IS NOT NULL AND s.deal_score <= 1.5
     """).fetchall()
     games = defaultdict(lambda: defaultdict(list))
     meta = {}
-    for eid, name, venue, dt_local, finished, dow, mins, tier, cents, lots, score, sec in rows:
+    for eid, name, venue, dt_local, finished, dow, mins, tier, cents, lots, score, sec, row in rows:
         qtys = {int(x) for x in (lots or '').split('/') if x.isdigit()}
-        games[eid][int(mins)].append((cents / 100, tier, qtys, sec))
+        games[eid][int(mins)].append((cents / 100, tier, qtys, sec, row))
         meta[eid] = {'name': name, 'venue': venue, 'dow': int(dow),
                      'date': str(dt_local)[:16], 'finished': bool(finished)}
     return games, meta
@@ -260,7 +260,7 @@ def analyze_kraken(games, meta, conn):
     return k
 
 
-def build_map_data(games, meta, sec_floor_source):
+def build_map_data(games_listings, meta, sec_floor_source):
     """Per Kraken home game: thinned per-section price frames for the replay,
     plus each section's best price and when it occurred."""
     here = Path(__file__).parent
@@ -303,9 +303,31 @@ def build_map_data(games, meta, sec_floor_source):
                 col.append({'p': min(cands)[0], 'm': min(cands, key=lambda c: c[0])[1]}
                            if cands else None)
             best[qk] = col
+        rp = None
+        if m['finished']:
+            POINTS = [480, 420, 360, 300, 240, 180, 120, 90, 60, 45, 30, 15, 0, -15, -30]
+            TOLS = [150, 40, 40, 30, 30, 25, 20, 14, 14, 10, 10, 10, 10, 10, 12]
+            raw = games_listings.get(eid, {})
+            if raw:
+                keys = sorted(raw.keys(), reverse=True)
+                rp = {}
+                for pi, (pt, tol) in enumerate(zip(POINTS, TOLS)):
+                    near = min(keys, key=lambda k2: abs(k2 - pt))
+                    if abs(near - pt) > tol:
+                        continue
+                    for price, tier, qtys, sec2, row in raw[near]:
+                        if not sec2 or not row:
+                            continue
+                        slot = rp.setdefault(sec2, {}).setdefault(row, [None] * len(POINTS))
+                        cur = slot[pi]
+                        if cur is None:
+                            slot[pi] = [round(price), 1]
+                        else:
+                            cur[0] = min(cur[0], round(price))
+                            cur[1] += 1
         out['games'].append({'name': m['name'].replace(' at Seattle Kraken', ''),
                              'date': m['date'], 'finished': m['finished'],
-                             'frames': frames, 'best': best,
+                             'frames': frames, 'best': best, 'rp': rp,
                              '_eid': eid})
 
     # season average: completed regular-season home games only
@@ -407,7 +429,7 @@ def main():
         per_pass = {}
         for mins, ls in games[eid].items():
             secp = {}
-            for price, tier, qtys, sec in ls:
+            for price, tier, qtys, sec, row in ls:
                 if not sec:
                     continue
                 d = secp.setdefault(sec, {'f': {}, 'n': {}})
