@@ -474,35 +474,44 @@ function shortWhen(m) {
     : m >= 60 ? 'T-' + (Math.round(m/6)/10) + 'h'
     : m >= 0 ? 'T-' + Math.round(m) + 'm' : 'T+' + Math.round(-m) + 'm';
 }
-const PROFILE_COHORTS = [
-  { lo: 241, hi: 480, label: '8-4h' },
-  { lo: 121, hi: 240, label: '2-4h' },
-  { lo: 61, hi: 120, label: '1-2h' },
-  { lo: 0, hi: 60, label: 'final hour' },
-  { lo: -45, hi: -1, label: 'after start' }];
+const PROFILE_POINTS = [
+  { t: 240, tol: 50, label: '4h out' },
+  { t: 120, tol: 30, label: '2h out' },
+  { t: 60, tol: 20, label: '1h out' },
+  { t: 30, tol: 14, label: '30m out' },
+  { t: 15, tol: 12, label: '15m out' },
+  { t: 0, tol: 12, label: 'puck drop' }];
+function median(arr) {
+  const a2 = [...arr].sort((x, y) => x - y);
+  const mid = Math.floor(a2.length / 2);
+  return a2.length % 2 ? a2[mid] : (a2[mid - 1] + a2[mid]) / 2;
+}
 function sectionProfile(i) {
-  const perCohort = PROFILE_COHORTS.map(() => []);
+  const perPoint = PROFILE_POINTS.map(() => []);
   let games = 0;
   PLAYED.forEach(g => {
-    let baseline = null, bdist = 1e9;
     const pts = [];
     g.frames.forEach(f => {
       const val = frameVals(f).vals[i];
-      if (val == null) return;
-      pts.push([f.m, val]);
-      const d = Math.abs(f.m - 480);
-      if (d < bdist && d <= 150) { bdist = d; baseline = val; }
+      if (val != null) pts.push([f.m, val]);
     });
+    if (!pts.length) return;
+    const at = (t, tol) => {
+      const near = pts.reduce((best, p2) =>
+        Math.abs(p2[0] - t) < Math.abs(best[0] - t) ? p2 : best);
+      return Math.abs(near[0] - t) <= tol ? near[1] : null;
+    };
+    const baseline = at(480, 150);
     if (!baseline) return;
     games++;
-    PROFILE_COHORTS.forEach((c, ci) => {
-      const inWin = pts.filter(([m]) => m >= c.lo && m <= c.hi).map(([, v2]) => v2);
-      if (inWin.length) perCohort[ci].push(Math.min(...inWin) / baseline);
+    PROFILE_POINTS.forEach((c, ci) => {
+      const v2 = at(c.t, c.tol);
+      if (v2 != null) perPoint[ci].push(v2 / baseline);
     });
   });
   if (!games) return null;
-  return { games, pct: perCohort.map(arr => arr.length
-    ? Math.round(arr.reduce((a2, b2) => a2 + b2, 0) / arr.length * 100) : null) };
+  return { games, pct: perPoint.map(arr => arr.length
+    ? Math.round(median(arr) * 100) : null) };
 }
 
 function showMapTip(sec, i, v, grp) {
@@ -518,19 +527,19 @@ function showMapTip(sec, i, v, grp) {
   }
   const prof = sectionProfile(i);
   if (prof) {
-    html += '<div style="font-size:11px;margin-top:6px">avg floor price vs 8h-out baseline (100%):</div>';
+    html += '<div style="font-size:11px;margin-top:6px">typical price vs 8h out (= 100%), at the bot\u2019s snapshot times:</div>';
     const span = Math.max(...prof.pct.filter(x => x != null), 100);
     prof.pct.forEach((pc, ci) => {
       html += '<div style="display:flex;align-items:center;gap:6px;margin-top:3px">' +
         '<span style="width:70px;text-align:right;color:var(--faint);font-size:11px">' +
-        PROFILE_COHORTS[ci].label + '</span>' +
+        PROFILE_POINTS[ci].label + '</span>' +
         '<span style="flex:1;height:11px;background:var(--grid);border-radius:3px;overflow:hidden">' +
         (pc == null ? '' : '<span style="display:block;height:100%;width:' + Math.round(pc/span*100) +
         '%;background:' + (pc <= 100 ? '#378ADD' : '#D97706') + ';border-radius:3px"></span>') +
         '</span><span style="width:34px;font-variant-numeric:tabular-nums;color:var(--ink);font-size:11px">' +
         (pc == null ? '-' : pc + '%') + '</span></div>';
     });
-    html += '<div style="font-size:10.5px;color:var(--faint);margin-top:3px">blue = cheaper than 8h out; orange = pricier \u00b7 avg of ' + prof.games + ' played game' + (prof.games > 1 ? 's' : '') + '</div>';
+    html += '<div style="font-size:10.5px;color:var(--faint);margin-top:3px">blue = cheaper than 8h out; orange = pricier \u00b7 median of ' + prof.games + ' played game' + (prof.games > 1 ? 's' : '') + '</div>';
   }
   if (h) {
     html += '<div style="font-size:15px;font-weight:600;color:#0d8a5f;margin:6px 0 1px">Best time to buy: ~' +
