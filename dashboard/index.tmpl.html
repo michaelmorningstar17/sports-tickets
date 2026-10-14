@@ -604,6 +604,8 @@ function showMapTip(sec, i, v, grp) {
       '<span style="width:32px"></span><span style="flex:4">avg listings</span><span style="width:24px"></span></div>';
     const span = Math.max(...prof.pct.filter(x => x != null), 100);
     const cspan = Math.max(...prof.cnt.filter(x => x != null), 1);
+    const minPct = Math.min(...prof.pct.filter(x => x != null));
+    const minIdx = prof.pct.indexOf(minPct);
     prof.pct.forEach((pc, ci) => {
       const cn = prof.cnt[ci];
       html += '<div style="display:flex;align-items:center;gap:6px;margin-top:2px">' +
@@ -611,16 +613,16 @@ function showMapTip(sec, i, v, grp) {
         PROFILE_POINTS[ci].label + '</span>' +
         '<span style="flex:5;height:9px;background:var(--grid);border-radius:3px;overflow:hidden">' +
         (pc == null ? '' : '<span style="display:block;height:100%;width:' + Math.round(pc/span*100) +
-        '%;background:' + (pc <= 100 ? '#378ADD' : '#D97706') + ';border-radius:3px"></span>') +
+        '%;background:' + (ci === minIdx ? '#0ca30c' : '#378ADD') + ';border-radius:3px"></span>') +
         '</span><span style="width:32px;font-variant-numeric:tabular-nums;color:var(--ink);font-size:10.5px">' +
         (pc == null ? '-' : pc + '%') + '</span>' +
         '<span style="flex:4;height:9px;background:var(--grid);border-radius:3px;overflow:hidden">' +
         (cn == null ? '' : '<span style="display:block;height:100%;width:' + Math.round(cn/cspan*100) +
-        '%;background:#1baf7a;border-radius:3px"></span>') +
+        '%;background:#8a8880;border-radius:3px"></span>') +
         '</span><span style="width:24px;font-variant-numeric:tabular-nums;color:var(--ink);font-size:10.5px">' +
         (cn == null ? '-' : cn) + '</span></div>';
     });
-    html += '<div style="font-size:10.5px;color:var(--faint);margin-top:3px">price: blue = cheaper than 8h out, orange = pricier \u00b7 listings: green bars, for the selected quantity \u00b7 median of ' + prof.games + ' played game' + (prof.games > 1 ? 's' : '') + '</div>';
+    html += '<div style="font-size:10.5px;color:var(--faint);margin-top:3px"><span style="color:#0ca30c;font-weight:600">green = cheapest time to buy</span> \u00b7 listings: gray bars, for the selected quantity \u00b7 median of ' + prof.games + ' played game' + (prof.games > 1 ? 's' : '') + '</div>';
     if (!prof.haveCounts) html += '<div style="font-size:10.5px;color:#b07500;margin-top:2px">listing counts arrive with the next full data refresh (Nov 1)</div>';
     html += rowNote;
   }
