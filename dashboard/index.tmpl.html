@@ -487,8 +487,7 @@ function shortWhen(m) {
     : m >= 0 ? 'T-' + Math.round(m) + 'm' : 'T+' + Math.round(-m) + 'm';
 }
 const PROFILE_POINTS = (() => {
-  const pts = [];
-  for (let h2 = 23; h2 >= 8; h2--) pts.push({ t: h2 * 60, tol: 40, label: h2 + 'h out' });
+  const pts = [20, 16, 12, 8].map(h2 => ({ t: h2 * 60, tol: 55, label: h2 + 'h out' }));
   return pts.concat([
     { t: 420, tol: 50, label: '7h out' },
     { t: 360, tol: 45, label: '6h out' },
