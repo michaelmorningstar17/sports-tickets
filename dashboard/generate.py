@@ -345,7 +345,18 @@ def build_map_data(games, meta, sec_floor_source):
 
 def main():
     import psycopg
-    conn = psycopg.connect(clean_dsn(os.environ['DATABASE_URL']))
+    import time as _time
+    conn = None
+    for attempt in range(4):
+        try:
+            conn = psycopg.connect(clean_dsn(os.environ['DATABASE_URL']),
+                                   connect_timeout=30)
+            break
+        except psycopg.OperationalError as e:
+            if attempt == 3:
+                raise
+            print(f'connect attempt {attempt + 1} failed ({e}); retrying...')
+            _time.sleep(15)
     games, meta = fetch(conn)
     now = datetime.now(timezone.utc)
     kraken_eids = {eid for eid, m in meta.items()
