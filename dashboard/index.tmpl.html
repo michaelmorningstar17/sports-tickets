@@ -609,6 +609,12 @@ function showMapTip(sec, i, v, grp) {
   } else {
     prof = sectionProfile(i);
   }
+  const selGame = MAP.games[MG];
+  if (selGame.date && !selGame.finished && v != null) {
+    html += '<div style="font-size:13px;font-weight:600;color:var(--mut);margin:3px 0 0">' +
+      'Snapshots in progress \u00b7 cheapest so far: <span style="color:var(--ink)">$' + v.p +
+      '/seat</span> (' + shortWhen(v.m) + ')</div>';
+  }
   const preIdx = prof ? prof.pct.map((pc, ci) => PROFILE_POINTS[ci].t >= 0 ? pc : null) : [];
   if (prof && preIdx.some(x => x != null)) {
     const minPct = Math.min(...preIdx.filter(x => x != null));
