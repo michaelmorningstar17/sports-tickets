@@ -4,6 +4,14 @@ _Last updated: 2026-09-22 (evening)_
 
 ## Current state
 
+- **OUTAGE (2026-10-14):** Neon free-tier egress quota (5 GB/mo) exceeded
+  (6.5 GB used; cause: dashboard generator pulls all rows per run plus a
+  heavy iteration day). All DB connections refused until Nov 1 unless
+  Michael upgrades ($19/mo) or stands up a temporary buffer DB (e.g.
+  Supabase free) via DATABASE_URL secret swap; merge back after. Collector
+  failing since ~21:45 PT Oct 13. TODO regardless: rewrite generate.py to
+  aggregate in SQL (cuts egress ~30x).
+
 - **Dashboard live (2026-10-13):** https://michaelmorningstar17.github.io/sports-tickets/
   — "when to buy Kraken tickets", two versions (index = plain advice,
   deep.html = methodology/distributions). Regenerated daily by

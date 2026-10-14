@@ -114,6 +114,40 @@ re-cuts the three charts on this page to Kraken home games only.</p>
   softest markets still have blocks to price. Placeholder listings above 1.5x fair value count as gone.)</p>
 </div>
 
+<h2>The arena, priced over time</h2>
+<div class="chartbox" style="position:relative">
+  <p style="font-size:17px;font-weight:600;color:var(--ink);margin:0 0 2px">Where the deals live at Climate Pledge</p>
+  <p style="font-size:13px;color:var(--faint);margin:0 0 12px">Every section, from our snapshots of the
+  resale market. Replay a game&rsquo;s market hour by hour, or see each section&rsquo;s best price and
+  when it appeared.</p>
+  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px;font-size:13.5px;color:var(--mut)">
+    <select id="mapGame" style="font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px"></select>
+    <span class="seg" style="margin:0">
+      <button id="mapModeReplay" class="on">Replay</button>
+      <button id="mapModeBest">Best price &amp; when</button>
+    </span>
+  </div>
+  <div id="mapReplayCtl" style="display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:13px;color:var(--mut)">
+    <button id="mapPlay" style="border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:5px 14px;font:600 13px/1 inherit;cursor:pointer">&#9654; Play</button>
+    <input id="mapSlider" type="range" min="0" value="0" style="flex:1">
+    <span id="mapWhen" style="min-width:150px;font-variant-numeric:tabular-nums"></span>
+  </div>
+  <div id="mapLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--mut);margin-bottom:6px"></div>
+  <div id="mapTip" style="display:none;position:absolute;z-index:6;pointer-events:none;
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    box-shadow:0 4px 14px rgba(0,0,0,.14);padding:12px 14px;width:252px;
+    font-size:12.5px;line-height:1.45;color:var(--mut)"></div>
+  <svg id="arenaMap" viewBox="0 0 2560 1936" style="width:100%;height:auto" role="img"
+    aria-label="Map of Climate Pledge Arena sections showing the cheapest listed price per section"></svg>
+  <p class="cap">Hover any section for its history: when its price floor has hit across played games, and the best time to buy it. Each marker is a section at its real position in the building; the number is the
+  cheapest listed seat in that section (base price). In <b>Replay</b>, color deepens with price for that
+  game; gray means no listings in that section at that moment. In <b>Best price &amp; when</b>, color
+  shows <i>when</i> the section&rsquo;s cheapest moment happened, in the same language as the chart
+  above: green = the deal came in the final hour (waiting paid there), through red = the deal came more
+  than 4 hours out (waiting would have cost you). Unfinished games show best-so-far. The season average option is the per-section median across completed regular-season home games (preseason excluded) and sharpens as the season goes on. A few sections never list on
+  Gametime and don&rsquo;t appear. Arena map imagery served from Gametime.</p>
+</div>
+
 <h2>Myth check: prices do not crash at puck drop</h2>
 <div class="chartbox">
   <canvas id="bottomChart" height="170" role="img"
@@ -138,36 +172,6 @@ re-cuts the three charts on this page to Kraken home games only.</p>
 
 <h2>Upper bowl vs Loge vs lower bowl at Climate Pledge</h2>
 <p style="font-size:14.5px;color:var(--mut)" id="tierText"></p>
-
-<h2>The arena, priced over time</h2>
-<div class="chartbox">
-  <p style="font-size:17px;font-weight:600;color:var(--ink);margin:0 0 2px">Where the deals live at Climate Pledge</p>
-  <p style="font-size:13px;color:var(--faint);margin:0 0 12px">Every section, from our snapshots of the
-  resale market. Replay a game&rsquo;s market hour by hour, or see each section&rsquo;s best price and
-  when it appeared.</p>
-  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px;font-size:13.5px;color:var(--mut)">
-    <select id="mapGame" style="font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px"></select>
-    <span class="seg" style="margin:0">
-      <button id="mapModeReplay" class="on">Replay</button>
-      <button id="mapModeBest">Best price &amp; when</button>
-    </span>
-  </div>
-  <div id="mapReplayCtl" style="display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:13px;color:var(--mut)">
-    <button id="mapPlay" style="border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:5px 14px;font:600 13px/1 inherit;cursor:pointer">&#9654; Play</button>
-    <input id="mapSlider" type="range" min="0" value="0" style="flex:1">
-    <span id="mapWhen" style="min-width:150px;font-variant-numeric:tabular-nums"></span>
-  </div>
-  <div id="mapLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--mut);margin-bottom:6px"></div>
-  <svg id="arenaMap" viewBox="0 0 2560 1936" style="width:100%;height:auto" role="img"
-    aria-label="Map of Climate Pledge Arena sections showing the cheapest listed price per section"></svg>
-  <p class="cap">Each marker is a section at its real position in the building; the number is the
-  cheapest listed seat in that section (base price). In <b>Replay</b>, color deepens with price for that
-  game; gray means no listings in that section at that moment. In <b>Best price &amp; when</b>, color
-  shows <i>when</i> the section&rsquo;s cheapest moment happened, in the same language as the chart
-  above: green = the deal came in the final hour (waiting paid there), through red = the deal came more
-  than 4 hours out (waiting would have cost you). Unfinished games show best-so-far. The season average option is the per-section median across completed regular-season home games (preseason excluded) and sharpens as the season goes on. A few sections never list on
-  Gametime and don&rsquo;t appear. Arena map imagery served from Gametime.</p>
-</div>
 
 <h2>Upcoming Kraken home games, today&rsquo;s market</h2>
 <table id="upcoming">
@@ -411,6 +415,68 @@ function priceColor(v, qs) {
   let i = 0; while (i < 4 && v > qs[i]) i++;
   return PRICE_RAMP[i];
 }
+const HIST_BUCKETS = [
+  { min: 241, label: 'over 4h out' },
+  { min: 121, label: '2-4h' },
+  { min: 61, label: '1-2h' },
+  { min: 31, label: '30-60m' },
+  { min: -9999, label: '\u226430m / after start' }];
+const PLAYED = MAP.games.filter(g => g.date && g.finished);
+function sectionHist(i) {
+  const ms = PLAYED.map(g => g.best[i]).filter(b => b).map(b => b.m);
+  if (!ms.length) return null;
+  const counts = HIST_BUCKETS.map(() => 0);
+  ms.forEach(m => { counts[HIST_BUCKETS.findIndex(bk => m >= bk.min)]++; });
+  const sortedMs = [...ms].sort((a, b) => a - b);
+  return { counts, n: ms.length, median: sortedMs[Math.floor(sortedMs.length / 2)] };
+}
+function shortWhen(m) {
+  return m >= 60 ? 'T-' + (Math.round(m/6)/10) + 'h'
+    : m >= 0 ? 'T-' + Math.round(m) + 'm' : 'T+' + Math.round(-m) + 'm';
+}
+function showMapTip(sec, i, v, grp) {
+  const tip = document.getElementById('mapTip');
+  const h = sectionHist(i);
+  let html = '<div style="font-weight:600;color:var(--ink);font-size:13px">' +
+    (sec.tier === 'Lower' || sec.tier === 'Loge' || sec.tier === 'Upper'
+      ? sec.tier + ' ' + sec.id : sec.tier) + '</div>';
+  if (v != null) {
+    html += '<div style="margin:2px 0 6px">' + (MMODE === 'replay'
+      ? 'cheapest right then: <b style="color:var(--ink)">$' + v + '/seat</b>'
+      : 'best price: <b style="color:var(--ink)">$' + v.p + '/seat</b> at ' + shortWhen(v.m)) + '</div>';
+  }
+  if (h) {
+    html += '<div style="font-size:15px;font-weight:600;color:#0d8a5f;margin:4px 0 1px">Best time to buy: ~' +
+      shortWhen(h.median) + '</div>' +
+      '<div style="font-size:11px;color:var(--faint);margin-bottom:7px">median floor time across ' +
+      h.n + ' played home game' + (h.n > 1 ? 's' : '') + '</div>';
+    const mx = Math.max(...h.counts, 1);
+    html += '<div style="font-size:11px">when this section\u2019s floor hit:</div>';
+    h.counts.forEach((c, bi) => {
+      html += '<div style="display:flex;align-items:center;gap:6px;margin-top:3px">' +
+        '<span style="width:84px;text-align:right;color:var(--faint);font-size:11px">' +
+        HIST_BUCKETS[bi].label + '</span>' +
+        '<span style="flex:1;height:11px;background:var(--grid);border-radius:3px;overflow:hidden">' +
+        '<span style="display:block;height:100%;width:' + Math.round(c/mx*100) +
+        '%;background:#2a78d6;border-radius:3px"></span></span>' +
+        '<span style="width:14px;font-variant-numeric:tabular-nums;color:var(--ink)">' + c + '</span></div>';
+    });
+  } else {
+    html += '<div style="font-size:11.5px;color:var(--faint)">no completed-game history for this section yet</div>';
+  }
+  tip.innerHTML = html;
+  tip.style.display = 'block';
+  const box = mapSvg.parentElement.getBoundingClientRect();
+  const r = grp.getBoundingClientRect();
+  let left = r.right - box.left + 10;
+  if (left + 260 > box.width) left = r.left - box.left - 262;
+  let top = r.top - box.top - 40;
+  top = Math.max(4, Math.min(top, box.height - 230));
+  tip.style.left = Math.max(4, left) + 'px';
+  tip.style.top = top + 'px';
+}
+function hideMapTip() { document.getElementById('mapTip').style.display = 'none'; }
+
 function drawMap() {
   const g = MAP.games[MG];
   const qs = quantiles(g);
@@ -463,11 +529,8 @@ function drawMap() {
       line('$' + v.p, 3, 23, 600, 1);
       line(when, 26, 15, 500, 0.95);
     }
-    const title = document.createElementNS(NS, 'title');
-    title.textContent = sec.tier + ' ' + sec.id + ': ' + (v == null ? 'no listings' :
-      MMODE === 'replay' ? 'cheapest $' + v + '/seat at this moment'
-      : 'best price $' + v.p + '/seat, ' + mapWhenLabel(v.m));
-    grp.appendChild(title);
+    grp.addEventListener('mouseenter', () => showMapTip(sec, i, v, grp));
+    grp.addEventListener('mouseleave', hideMapTip);
     mapSvg.appendChild(grp);
   });
   const slider = document.getElementById('mapSlider');
