@@ -420,32 +420,48 @@ function drawMap() {
   MAP.sections.forEach((sec, i) => {
     const v = vals[i];
     const grp = document.createElementNS(NS, 'g');
-    const c = document.createElementNS(NS, 'circle');
-    c.setAttribute('cx', sec.x); c.setAttribute('cy', sec.y); c.setAttribute('r', 40);
-    c.setAttribute('stroke', '#ffffff'); c.setAttribute('stroke-width', 3);
-    let fill = '#d8d7d0', txtCol = '#6b6a66', txt = '';
+    const three = MMODE !== 'replay';
+    const W = 96, H = three ? 82 : 58;
+    const rect = document.createElementNS(NS, 'rect');
+    rect.setAttribute('x', sec.x - W/2); rect.setAttribute('y', sec.y - H/2);
+    rect.setAttribute('width', W); rect.setAttribute('height', H);
+    rect.setAttribute('rx', 10);
+    rect.setAttribute('stroke', '#ffffff'); rect.setAttribute('stroke-width', 2.5);
+    let fill = '#d8d7d0', txtCol = '#6b6a66';
     if (v != null) {
       if (MMODE === 'replay') {
         fill = priceColor(v, qs);
         txtCol = (fill === PRICE_RAMP[3] || fill === PRICE_RAMP[4]) ? '#fff' : '#0C447C';
-        txt = '$' + v;
       } else {
         const band = TIME_BANDS.find(b => v.m >= b.min);
-        fill = band.color;
-        txtCol = band.txt;
-        txt = '$' + v.p;
+        fill = band.color; txtCol = band.txt;
       }
     }
-    c.setAttribute('fill', fill);
-    grp.appendChild(c);
-    if (txt) {
+    rect.setAttribute('fill', fill);
+    grp.appendChild(rect);
+    const line = (txt, dy, size, weight, opac) => {
       const t = document.createElementNS(NS, 'text');
-      t.setAttribute('x', sec.x); t.setAttribute('y', sec.y + 9);
+      t.setAttribute('x', sec.x); t.setAttribute('y', sec.y + dy);
       t.setAttribute('text-anchor', 'middle');
-      t.setAttribute('font-size', '27'); t.setAttribute('font-weight', '600');
-      t.setAttribute('fill', txtCol);
+      t.setAttribute('font-size', size); t.setAttribute('font-weight', weight);
+      t.setAttribute('fill', txtCol); t.setAttribute('fill-opacity', opac);
       t.textContent = txt;
       grp.appendChild(t);
+    };
+    const secLabel = 'Sec ' + sec.id;
+    if (v == null) {
+      line(secLabel, -2, 15, 400, 0.9);
+      line('-', 18, 15, 400, 0.9);
+    } else if (MMODE === 'replay') {
+      line(secLabel, -8, 14, 400, 0.85);
+      line('$' + v, 17, 23, 600, 1);
+    } else {
+      const m = v.m;
+      const when = m >= 60 ? 'T-' + (Math.round(m/6)/10) + 'h'
+        : m >= 0 ? 'T-' + Math.round(m) + 'm' : 'T+' + Math.round(-m) + 'm';
+      line(secLabel, -22, 14, 400, 0.85);
+      line('$' + v.p, 3, 23, 600, 1);
+      line(when, 26, 15, 500, 0.95);
     }
     const title = document.createElementNS(NS, 'title');
     title.textContent = sec.tier + ' ' + sec.id + ': ' + (v == null ? 'no listings' :
