@@ -509,6 +509,7 @@ const POINT_IDX = [420, 360, 300, 240, 180, 120, 90, 60, 45, 30, 15, 0, -15, -30
 function rowProfile(secId) {
   const perPoint = PROFILE_POINTS.map(() => []);
   const perCount = PROFILE_POINTS.map(() => []);
+  const perAbs = PROFILE_POINTS.map(() => []);
   let games = 0, have = false;
   PLAYED.forEach(g => {
     if (!g.rp || !g.rp[secId]) return;
@@ -529,18 +530,20 @@ function rowProfile(secId) {
     PROFILE_POINTS.forEach((c, ci) => {
       const si = POINT_IDX.indexOf(c.t) + 1;
       const v2 = slotAgg(si);
-      if (v2) { perPoint[ci].push(v2[0] / base[0]); perCount[ci].push(v2[1]); }
+      if (v2) { perPoint[ci].push(v2[0] / base[0]); perAbs[ci].push(v2[0]); perCount[ci].push(v2[1]); }
     });
   });
   if (!have) return { missing: true };
   if (!games) return null;
   return { games, haveCounts: true,
     pct: perPoint.map(arr => arr.length ? Math.round(median(arr) * 100) : null),
+    abs: perAbs.map(arr => arr.length ? Math.round(median(arr)) : null),
     cnt: perCount.map(arr => arr.length ? Math.round(median(arr) * 10) / 10 : null) };
 }
 function sectionProfile(i) {
   const perPoint = PROFILE_POINTS.map(() => []);
   const perCount = PROFILE_POINTS.map(() => []);
+  const perAbs = PROFILE_POINTS.map(() => []);
   let games = 0, haveCounts = false;
   PLAYED.forEach(g => {
     const pts = [], cnts = [];
@@ -562,7 +565,7 @@ function sectionProfile(i) {
     games++;
     PROFILE_POINTS.forEach((c, ci) => {
       const v2 = near(pts, c.t, c.tol);
-      if (v2 != null) perPoint[ci].push(v2 / baseline);
+      if (v2 != null) { perPoint[ci].push(v2 / baseline); perAbs[ci].push(v2); }
       const n3 = near(cnts, c.t, c.tol);
       if (n3 != null) { perCount[ci].push(n3); haveCounts = true; }
     });
@@ -570,6 +573,7 @@ function sectionProfile(i) {
   if (!games) return null;
   return { games, haveCounts,
     pct: perPoint.map(arr => arr.length ? Math.round(median(arr) * 100) : null),
+    abs: perAbs.map(arr => arr.length ? Math.round(median(arr)) : null),
     cnt: perCount.map(arr => arr.length ? Math.round(median(arr) * 10) / 10 : null) };
 }
 
@@ -579,11 +583,7 @@ function showMapTip(sec, i, v, grp) {
   let html = '<div style="font-weight:600;color:var(--ink);font-size:13px">' +
     (sec.tier === 'Lower' || sec.tier === 'Loge' || sec.tier === 'Upper'
       ? sec.tier + ' ' + sec.id : sec.tier) + '</div>';
-  if (v != null) {
-    html += '<div style="margin:2px 0 6px">' + (MMODE === 'replay'
-      ? 'cheapest right then: <b style="color:var(--ink)">$' + v + '/seat</b>'
-      : 'best price: <b style="color:var(--ink)">$' + v.p + '/seat</b> at ' + shortWhen(v.m)) + '</div>';
-  }
+
   let prof, rowNote = '';
   if (rowActive()) {
     const rprof = rowProfile(sec.id);
@@ -598,10 +598,18 @@ function showMapTip(sec, i, v, grp) {
   } else {
     prof = sectionProfile(i);
   }
+  if (prof && prof.pct.some(x => x != null)) {
+    const minPct = Math.min(...prof.pct.filter(x => x != null));
+    const minIdx = prof.pct.indexOf(minPct);
+    html += '<div style="font-size:15px;font-weight:600;color:#0d8a5f;margin:3px 0 0">Best time to buy: ' +
+      PROFILE_POINTS[minIdx].label + (prof.abs[minIdx] != null ? ' \u00b7 typically $' + prof.abs[minIdx] + '/seat' : '') + '</div>' +
+      '<div style="font-size:10.5px;color:var(--faint);margin-bottom:4px">the green bar below \u00b7 median of ' +
+      prof.games + ' played home game' + (prof.games > 1 ? 's' : '') + '</div>';
+  }
   if (prof) {
     html += '<div style="display:flex;gap:6px;font-size:11px;margin-top:6px">' +
       '<span style="width:62px"></span><span style="flex:5">price vs 8h out (= 100%)</span>' +
-      '<span style="width:32px"></span><span style="flex:4">avg listings</span><span style="width:24px"></span></div>';
+      '<span style="width:32px"></span><span style="flex:4">average number of listings</span><span style="width:24px"></span></div>';
     const span = Math.max(...prof.pct.filter(x => x != null), 100);
     const cspan = Math.max(...prof.cnt.filter(x => x != null), 1);
     const minPct = Math.min(...prof.pct.filter(x => x != null));
@@ -622,16 +630,11 @@ function showMapTip(sec, i, v, grp) {
         '</span><span style="width:24px;font-variant-numeric:tabular-nums;color:var(--ink);font-size:10.5px">' +
         (cn == null ? '-' : cn) + '</span></div>';
     });
-    html += '<div style="font-size:10.5px;color:var(--faint);margin-top:3px"><span style="color:#0ca30c;font-weight:600">green = cheapest time to buy</span> \u00b7 listings: gray bars, for the selected quantity \u00b7 median of ' + prof.games + ' played game' + (prof.games > 1 ? 's' : '') + '</div>';
+
     if (!prof.haveCounts) html += '<div style="font-size:10.5px;color:#b07500;margin-top:2px">listing counts arrive with the next full data refresh (Nov 1)</div>';
     html += rowNote;
   }
-  if (h) {
-    html += '<div style="font-size:15px;font-weight:600;color:#0d8a5f;margin:6px 0 1px">Best time to buy: ~' +
-      shortWhen(h.median) + '</div>' +
-      '<div style="font-size:11px;color:var(--faint)">median floor time across ' +
-      h.n + ' played home game' + (h.n > 1 ? 's' : '') + '</div>';
-  } else {
+  if (!prof) {
     html += '<div style="font-size:11.5px;color:var(--faint)">no completed-game history for this section yet</div>';
   }
   tip.innerHTML = html;
