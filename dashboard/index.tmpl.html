@@ -582,7 +582,10 @@ function showMapTip(sec, i, v, grp) {
   const h = sectionHist(i);
   let html = '<div style="font-weight:600;color:var(--ink);font-size:13px">' +
     (sec.tier === 'Lower' || sec.tier === 'Loge' || sec.tier === 'Upper'
-      ? sec.tier + ' ' + sec.id : sec.tier) + '</div>';
+      ? sec.tier + ' ' + sec.id : sec.tier) +
+    ' <span style="font-weight:400;font-size:10.5px;color:var(--faint)">\u00b7 history of ' +
+    PLAYED.length + ' played home game' + (PLAYED.length > 1 ? 's' : '') +
+    ', not the selected game</span></div>';
 
   let prof, rowNote = '';
   if (rowActive()) {
