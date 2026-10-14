@@ -32,7 +32,9 @@ jobs:
       - name: Generate dashboard
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python dashboard/generate.py
+        # Falls back to the committed data snapshot when the database is
+        # unreachable (e.g. quota block), so UI changes still deploy.
+        run: python dashboard/generate.py || python dashboard/generate.py --cached
 
       - uses: actions/configure-pages@v5
 
