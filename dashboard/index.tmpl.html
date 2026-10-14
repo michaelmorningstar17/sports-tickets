@@ -110,7 +110,8 @@ their final hours, updated nightly &middot; generated __GENERATED__ &middot;
     font-size:12.5px;line-height:1.45;color:var(--mut)"></div>
   <svg id="arenaMap" viewBox="0 0 2560 1936" style="width:100%;height:auto" role="img"
     aria-label="Map of Climate Pledge Arena sections showing the cheapest listed price per section"></svg>
-  <p class="cap">Box shows the price and (in best mode) when it hit; hover any section for its name and history: when its price floor has hit across played games, and the best time to buy it. Each marker is a section at its real position in the building; the number is the
+  <p class="cap">In best mode each box shows the timing cohort of that section&rsquo;s cheapest moment (and the
+  exact time beneath); in replay it shows the price at that moment. Hover any section for its name and history: when its price floor has hit across played games, and the best time to buy it. Each marker is a section at its real position in the building; the number is the
   cheapest listed seat in that section (base price). In <b>Replay</b>, color deepens with price for that
   game; gray means no listings in that section at that moment. In <b>Best price &amp; when</b>, color
   shows <i>when</i> the section&rsquo;s cheapest moment happened on an orange-to-blue clock:
@@ -427,12 +428,12 @@ function bestVals(g) {
 gameSel.value = MG;
 
 const TIME_BANDS = [
-  { min: 481, color: '#9A3412', txt: '#fff', label: 'over 8h before' },
-  { min: 241, color: '#D97706', txt: '#431407', label: '8-4h' },
-  { min: 121, color: '#FAC775', txt: '#633806', label: '2-4h' },
-  { min: 61, color: '#B5D4F4', txt: '#0C447C', label: '1-2h' },
-  { min: 0, color: '#378ADD', txt: '#fff', label: 'final hour' },
-  { min: -9999, color: '#0C447C', txt: '#fff', label: 'after puck drop' }];
+  { min: 481, color: '#9A3412', txt: '#fff', label: 'over 8h before', short: '>8h' },
+  { min: 241, color: '#D97706', txt: '#431407', label: '8-4h', short: '8-4h' },
+  { min: 121, color: '#FAC775', txt: '#633806', label: '2-4h', short: '2-4h' },
+  { min: 61, color: '#B5D4F4', txt: '#0C447C', label: '1-2h', short: '1-2h' },
+  { min: 0, color: '#378ADD', txt: '#fff', label: 'final hour', short: '<1h' },
+  { min: -9999, color: '#0C447C', txt: '#fff', label: 'after puck drop', short: 'after' }];
 const PRICE_RAMP = ['#E6F1FB', '#B5D4F4', '#85B7EB', '#378ADD', '#185FA5'];
 
 function mapWhenLabel(m) {
@@ -473,6 +474,37 @@ function shortWhen(m) {
     : m >= 60 ? 'T-' + (Math.round(m/6)/10) + 'h'
     : m >= 0 ? 'T-' + Math.round(m) + 'm' : 'T+' + Math.round(-m) + 'm';
 }
+const PROFILE_COHORTS = [
+  { lo: 241, hi: 480, label: '8-4h' },
+  { lo: 121, hi: 240, label: '2-4h' },
+  { lo: 61, hi: 120, label: '1-2h' },
+  { lo: 0, hi: 60, label: 'final hour' },
+  { lo: -45, hi: -1, label: 'after start' }];
+function sectionProfile(i) {
+  const perCohort = PROFILE_COHORTS.map(() => []);
+  let games = 0;
+  PLAYED.forEach(g => {
+    let baseline = null, bdist = 1e9;
+    const pts = [];
+    g.frames.forEach(f => {
+      const val = frameVals(f).vals[i];
+      if (val == null) return;
+      pts.push([f.m, val]);
+      const d = Math.abs(f.m - 480);
+      if (d < bdist && d <= 150) { bdist = d; baseline = val; }
+    });
+    if (!baseline) return;
+    games++;
+    PROFILE_COHORTS.forEach((c, ci) => {
+      const inWin = pts.filter(([m]) => m >= c.lo && m <= c.hi).map(([, v2]) => v2);
+      if (inWin.length) perCohort[ci].push(Math.min(...inWin) / baseline);
+    });
+  });
+  if (!games) return null;
+  return { games, pct: perCohort.map(arr => arr.length
+    ? Math.round(arr.reduce((a2, b2) => a2 + b2, 0) / arr.length * 100) : null) };
+}
+
 function showMapTip(sec, i, v, grp) {
   const tip = document.getElementById('mapTip');
   const h = sectionHist(i);
@@ -484,8 +516,24 @@ function showMapTip(sec, i, v, grp) {
       ? 'cheapest right then: <b style="color:var(--ink)">$' + v + '/seat</b>'
       : 'best price: <b style="color:var(--ink)">$' + v.p + '/seat</b> at ' + shortWhen(v.m)) + '</div>';
   }
+  const prof = sectionProfile(i);
+  if (prof) {
+    html += '<div style="font-size:11px;margin-top:6px">avg floor price vs 8h-out baseline (100%):</div>';
+    const span = Math.max(...prof.pct.filter(x => x != null), 100);
+    prof.pct.forEach((pc, ci) => {
+      html += '<div style="display:flex;align-items:center;gap:6px;margin-top:3px">' +
+        '<span style="width:70px;text-align:right;color:var(--faint);font-size:11px">' +
+        PROFILE_COHORTS[ci].label + '</span>' +
+        '<span style="flex:1;height:11px;background:var(--grid);border-radius:3px;overflow:hidden">' +
+        (pc == null ? '' : '<span style="display:block;height:100%;width:' + Math.round(pc/span*100) +
+        '%;background:' + (pc <= 100 ? '#378ADD' : '#D97706') + ';border-radius:3px"></span>') +
+        '</span><span style="width:34px;font-variant-numeric:tabular-nums;color:var(--ink);font-size:11px">' +
+        (pc == null ? '-' : pc + '%') + '</span></div>';
+    });
+    html += '<div style="font-size:10.5px;color:var(--faint);margin-top:3px">blue = cheaper than 8h out; orange = pricier \u00b7 avg of ' + prof.games + ' played game' + (prof.games > 1 ? 's' : '') + '</div>';
+  }
   if (h) {
-    html += '<div style="font-size:15px;font-weight:600;color:#0d8a5f;margin:4px 0 1px">Best time to buy: ~' +
+    html += '<div style="font-size:15px;font-weight:600;color:#0d8a5f;margin:6px 0 1px">Best time to buy: ~' +
       shortWhen(h.median) + '</div>' +
       '<div style="font-size:11px;color:var(--faint);margin-bottom:7px">median floor time across ' +
       h.n + ' played home game' + (h.n > 1 ? 's' : '') + '</div>';
@@ -561,12 +609,9 @@ function drawMap() {
     } else if (MMODE === 'replay') {
       line('$' + v, 10, 30, 600, 1);
     } else {
-      const m = v.m;
-      const when = m >= 2880 ? 'T-' + Math.round(m/1440) + 'd'
-        : m >= 60 ? 'T-' + (Math.round(m/6)/10) + 'h'
-        : m >= 0 ? 'T-' + Math.round(m) + 'm' : 'T+' + Math.round(-m) + 'm';
-      line('$' + v.p, -3, 28, 600, 1);
-      line(when, 22, 18, 500, 0.95);
+      const band = TIME_BANDS.find(b => v.m >= b.min);
+      line(band.short, -3, 22, 600, 1);
+      line(shortWhen(v.m), 22, 16, 500, 0.9);
     }
     grp.addEventListener('mouseenter', () => showMapTip(sec, i, v, grp));
     grp.addEventListener('mouseleave', hideMapTip);
