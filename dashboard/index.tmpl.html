@@ -100,11 +100,11 @@ their final hours, updated nightly &middot; generated __GENERATED__ &middot;
   <div id="mapLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--mut);margin-bottom:6px"></div>
   <div id="mapTip" style="display:none;position:absolute;z-index:6;pointer-events:none;
     background:var(--card);border:1px solid var(--line);border-radius:10px;
-    box-shadow:0 4px 14px rgba(0,0,0,.14);padding:12px 16px;width:450px;
+    box-shadow:0 4px 14px rgba(0,0,0,.14);padding:12px 16px;width:min(450px,calc(100vw - 40px));
     font-size:12.5px;line-height:1.45;color:var(--mut)"></div>
-  <svg id="arenaMap" viewBox="0 0 2560 1936" style="width:100%;height:auto" role="img"
+  <svg id="arenaMap" viewBox="0 0 2560 1936" style="display:block;width:calc(100% + 36px);margin:0 -18px;height:auto" role="img"
     aria-label="Map of Climate Pledge Arena sections showing the cheapest listed price per section"></svg>
-  <p class="cap">Each green label is the best time to buy that section, matching the green bar in its hover card. The row filter applies to the hover charts. Hover any section for its name and history: when its price floor has hit across played games, and the best time to buy it. Each marker sits at its section&rsquo;s real position in the building. Unfinished games
+  <p class="cap">Each green label is the best time to buy that section, matching the green bar in its hover card. The row filter applies to the hover charts. Hover or tap any section for its name and history (tap it again, or anywhere else, to put the card away): when its price floor has hit across played games, and the best time to buy it. Each marker sits at its section&rsquo;s real position in the building. Unfinished games
   show the recommendation from played-game history. The season average option is the per-section median across completed regular-season home games (preseason excluded) and sharpens as the season goes on. A few sections never list on
   Gametime and don&rsquo;t appear. Arena map imagery served from Gametime.</p>
 </div>
@@ -397,6 +397,8 @@ for (const u of K.upcoming) {
 const MAP = DATA.map;
 const NS = 'http://www.w3.org/2000/svg';
 const mapSvg = document.getElementById('arenaMap');
+let TIP_KEY = null;
+const TOUCH = window.matchMedia && window.matchMedia('(hover: none)').matches;
 const gameSel = document.getElementById('mapGame');
 MAP.games.forEach((g, i) => {
   const o = document.createElement('option');
@@ -599,6 +601,7 @@ function sectionProfile(i) {
 }
 
 function showMapTip(sec, i, v, grp) {
+  TIP_KEY = i;
   const tip = document.getElementById('mapTip');
   const h = sectionHist(i);
   let html = '<div style="font-weight:600;color:var(--ink);font-size:13px">' +
@@ -676,14 +679,19 @@ function showMapTip(sec, i, v, grp) {
   tip.style.display = 'block';
   const box = mapSvg.parentElement.getBoundingClientRect();
   const r = grp.getBoundingClientRect();
+  const tw = tip.offsetWidth;
   let left = r.right - box.left + 10;
-  if (left + 462 > box.width) left = r.left - box.left - 464;
+  if (left + tw + 12 > box.width) left = r.left - box.left - tw - 14;
+  if (left + tw + 4 > box.width) left = box.width - tw - 4;
   let top = r.top - box.top - 40;
   top = Math.max(4, Math.min(top, box.height - tip.offsetHeight - 8));
   tip.style.left = Math.max(4, left) + 'px';
   tip.style.top = top + 'px';
 }
-function hideMapTip() { document.getElementById('mapTip').style.display = 'none'; }
+function hideMapTip() { TIP_KEY = null; document.getElementById('mapTip').style.display = 'none'; }
+if (TOUCH) document.addEventListener('click', ev => {
+  if (!mapSvg.contains(ev.target)) hideMapTip();
+});
 
 function drawMap() {
   const g = MAP.games[MG];
@@ -723,8 +731,16 @@ function drawMap() {
     } else {
       line(PROFILE_POINTS[rec].label, 9, 26, 600, 1);
     }
-    grp.addEventListener('mouseenter', () => showMapTip(sec, i, v, grp));
-    grp.addEventListener('mouseleave', hideMapTip);
+    grp.style.cursor = 'pointer';
+    if (TOUCH) {
+      grp.addEventListener('click', ev => {
+        ev.stopPropagation();
+        if (TIP_KEY === i) hideMapTip(); else showMapTip(sec, i, v, grp);
+      });
+    } else {
+      grp.addEventListener('mouseenter', () => showMapTip(sec, i, v, grp));
+      grp.addEventListener('mouseleave', hideMapTip);
+    }
     mapSvg.appendChild(grp);
   });
   const lg = document.getElementById('mapLegend');
