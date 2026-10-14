@@ -106,7 +106,7 @@ their final hours, updated nightly &middot; generated __GENERATED__ &middot;
   <div id="mapLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--mut);margin-bottom:6px"></div>
   <div id="mapTip" style="display:none;position:absolute;z-index:6;pointer-events:none;
     background:var(--card);border:1px solid var(--line);border-radius:10px;
-    box-shadow:0 4px 14px rgba(0,0,0,.14);padding:12px 14px;width:252px;
+    box-shadow:0 4px 14px rgba(0,0,0,.14);padding:12px 14px;width:390px;
     font-size:12.5px;line-height:1.45;color:var(--mut)"></div>
   <svg id="arenaMap" viewBox="0 0 2560 1936" style="width:100%;height:auto" role="img"
     aria-label="Map of Climate Pledge Arena sections showing the cheapest listed price per section"></svg>
@@ -494,32 +494,43 @@ function median(arr) {
   const mid = Math.floor(a2.length / 2);
   return a2.length % 2 ? a2[mid] : (a2[mid - 1] + a2[mid]) / 2;
 }
+function frameCnts(f) {
+  if (!f.c) return null;
+  return f.c[MQTY] || f.c.a;
+}
 function sectionProfile(i) {
   const perPoint = PROFILE_POINTS.map(() => []);
-  let games = 0;
+  const perCount = PROFILE_POINTS.map(() => []);
+  let games = 0, haveCounts = false;
   PLAYED.forEach(g => {
-    const pts = [];
+    const pts = [], cnts = [];
     g.frames.forEach(f => {
       const val = frameVals(f).vals[i];
       if (val != null) pts.push([f.m, val]);
+      const cv = frameCnts(f);
+      if (cv && cv[i] != null) cnts.push([f.m, cv[i]]);
     });
     if (!pts.length) return;
-    const at = (t, tol) => {
-      const near = pts.reduce((best, p2) =>
+    const near = (list, t, tol) => {
+      if (!list.length) return null;
+      const n2 = list.reduce((best, p2) =>
         Math.abs(p2[0] - t) < Math.abs(best[0] - t) ? p2 : best);
-      return Math.abs(near[0] - t) <= tol ? near[1] : null;
+      return Math.abs(n2[0] - t) <= tol ? n2[1] : null;
     };
-    const baseline = at(480, 150);
+    const baseline = near(pts, 480, 150);
     if (!baseline) return;
     games++;
     PROFILE_POINTS.forEach((c, ci) => {
-      const v2 = at(c.t, c.tol);
+      const v2 = near(pts, c.t, c.tol);
       if (v2 != null) perPoint[ci].push(v2 / baseline);
+      const n3 = near(cnts, c.t, c.tol);
+      if (n3 != null) { perCount[ci].push(n3); haveCounts = true; }
     });
   });
   if (!games) return null;
-  return { games, pct: perPoint.map(arr => arr.length
-    ? Math.round(median(arr) * 100) : null) };
+  return { games, haveCounts,
+    pct: perPoint.map(arr => arr.length ? Math.round(median(arr) * 100) : null),
+    cnt: perCount.map(arr => arr.length ? Math.round(median(arr) * 10) / 10 : null) };
 }
 
 function showMapTip(sec, i, v, grp) {
@@ -535,19 +546,29 @@ function showMapTip(sec, i, v, grp) {
   }
   const prof = sectionProfile(i);
   if (prof) {
-    html += '<div style="font-size:11px;margin-top:6px">typical price vs 8h out (= 100%), at the bot\u2019s snapshot times:</div>';
+    html += '<div style="display:flex;gap:6px;font-size:11px;margin-top:6px">' +
+      '<span style="width:62px"></span><span style="flex:5">price vs 8h out (= 100%)</span>' +
+      '<span style="width:32px"></span><span style="flex:4">avg listings</span><span style="width:24px"></span></div>';
     const span = Math.max(...prof.pct.filter(x => x != null), 100);
+    const cspan = Math.max(...prof.cnt.filter(x => x != null), 1);
     prof.pct.forEach((pc, ci) => {
+      const cn = prof.cnt[ci];
       html += '<div style="display:flex;align-items:center;gap:6px;margin-top:2px">' +
         '<span style="width:62px;text-align:right;color:var(--faint);font-size:10.5px">' +
         PROFILE_POINTS[ci].label + '</span>' +
-        '<span style="flex:1;height:9px;background:var(--grid);border-radius:3px;overflow:hidden">' +
+        '<span style="flex:5;height:9px;background:var(--grid);border-radius:3px;overflow:hidden">' +
         (pc == null ? '' : '<span style="display:block;height:100%;width:' + Math.round(pc/span*100) +
         '%;background:' + (pc <= 100 ? '#378ADD' : '#D97706') + ';border-radius:3px"></span>') +
         '</span><span style="width:32px;font-variant-numeric:tabular-nums;color:var(--ink);font-size:10.5px">' +
-        (pc == null ? '-' : pc + '%') + '</span></div>';
+        (pc == null ? '-' : pc + '%') + '</span>' +
+        '<span style="flex:4;height:9px;background:var(--grid);border-radius:3px;overflow:hidden">' +
+        (cn == null ? '' : '<span style="display:block;height:100%;width:' + Math.round(cn/cspan*100) +
+        '%;background:#1baf7a;border-radius:3px"></span>') +
+        '</span><span style="width:24px;font-variant-numeric:tabular-nums;color:var(--ink);font-size:10.5px">' +
+        (cn == null ? '-' : cn) + '</span></div>';
     });
-    html += '<div style="font-size:10.5px;color:var(--faint);margin-top:3px">blue = cheaper than 8h out; orange = pricier \u00b7 median of ' + prof.games + ' played game' + (prof.games > 1 ? 's' : '') + '</div>';
+    html += '<div style="font-size:10.5px;color:var(--faint);margin-top:3px">price: blue = cheaper than 8h out, orange = pricier \u00b7 listings: green bars, for the selected quantity \u00b7 median of ' + prof.games + ' played game' + (prof.games > 1 ? 's' : '') + '</div>';
+    if (!prof.haveCounts) html += '<div style="font-size:10.5px;color:#b07500;margin-top:2px">listing counts arrive with the next full data refresh (Nov 1)</div>';
   }
   if (h) {
     html += '<div style="font-size:15px;font-weight:600;color:#0d8a5f;margin:6px 0 1px">Best time to buy: ~' +
@@ -573,7 +594,7 @@ function showMapTip(sec, i, v, grp) {
   const box = mapSvg.parentElement.getBoundingClientRect();
   const r = grp.getBoundingClientRect();
   let left = r.right - box.left + 10;
-  if (left + 260 > box.width) left = r.left - box.left - 262;
+  if (left + 400 > box.width) left = r.left - box.left - 402;
   let top = r.top - box.top - 40;
   top = Math.max(4, Math.min(top, box.height - tip.offsetHeight - 8));
   tip.style.left = Math.max(4, left) + 'px';
