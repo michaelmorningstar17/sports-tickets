@@ -514,7 +514,11 @@ function frameCnts(f) {
   if (!f.c) return null;
   return f.c[MQTY] || f.c.a;
 }
-const POINT_IDX = PROFILE_POINTS.map(p2 => p2.t);
+const GEN_SLOTS = (() => {
+  const h = [];
+  for (let x = 23; x >= 8; x--) h.push(x * 60);
+  return h.concat([420, 360, 300, 240, 180, 120, 90, 60, 45, 30, 15, 0, -15, -30]);
+})();
 function rowProfile(secId) {
   const perPoint = PROFILE_POINTS.map(() => []);
   const perCount = PROFILE_POINTS.map(() => []);
@@ -537,7 +541,7 @@ function rowProfile(secId) {
     if (!base) return;
     games++;
     PROFILE_POINTS.forEach((c, ci) => {
-      const si = POINT_IDX.indexOf(c.t) + 1;
+      const si = GEN_SLOTS.indexOf(c.t) + 1;
       const v2 = slotAgg(si);
       if (v2) { perPoint[ci].push(v2[0] / base[0]); perAbs[ci].push(v2[0]); perCount[ci].push(v2[1]); }
     });
