@@ -343,7 +343,27 @@ def build_map_data(games, meta, sec_floor_source):
     return out
 
 
+CACHE_PATH = Path(__file__).parent / 'data_cache.json'
+
+
+def render(data):
+    here = Path(__file__).parent
+    out = here.parent / 'site'
+    out.mkdir(exist_ok=True)
+    payload = json.dumps(data, separators=(',', ':'))
+    for page in ('index', 'deep'):
+        tmpl = (here / f'{page}.tmpl.html').read_text()
+        html = tmpl.replace('/*__DATA__*/null', payload) \
+                   .replace('__GENERATED__', data['generated'])
+        (out / f'{page}.html').write_text(html)
+
+
 def main():
+    if '--cached' in sys.argv:
+        data = json.loads(CACHE_PATH.read_text())
+        render(data)
+        print(f"rendered site/ from local cache ({data['generated']}), no database touched")
+        return
     import psycopg
     import time as _time
     conn = None
@@ -384,15 +404,8 @@ def main():
     }
     conn.close()
 
-    here = Path(__file__).parent
-    out = here.parent / 'site'
-    out.mkdir(exist_ok=True)
-    payload = json.dumps(data, separators=(',', ':'))
-    for page in ('index', 'deep'):
-        tmpl = (here / f'{page}.tmpl.html').read_text()
-        html = tmpl.replace('/*__DATA__*/null', payload) \
-                   .replace('__GENERATED__', data['generated'])
-        (out / f'{page}.html').write_text(html)
+    CACHE_PATH.write_text(json.dumps(data, separators=(',', ':')))
+    render(data)
     print(f"generated site/ from {data['league']['n_games_total'] if 'n_games_total' in data['league'] else data['league']['n_games']} qualified games, "
           f"{data['n_rows']:,} rows; {data['generated']}")
 
