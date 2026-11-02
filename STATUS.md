@@ -1,23 +1,25 @@
 # STATUS — sports-tickets
 
-_Last updated: 2026-09-22 (evening)_
+_Last updated: 2026-11-02_
 
 ## Current state
 
-- **OUTAGE (2026-10-14):** Neon free-tier egress quota (5 GB/mo) exceeded
-  (6.5 GB used; cause: dashboard generator pulls all rows per run plus a
-  heavy iteration day). All DB connections refused until Nov 1 unless
-  Michael upgrades ($19/mo) or stands up a temporary buffer DB (e.g.
-  Supabase free) via DATABASE_URL secret swap; merge back after. Collector
-  failing since ~21:45 PT Oct 13. TODO regardless: rewrite generate.py to
-  aggregate in SQL (cuts egress ~30x).
-  Nov 1 restore scope (beyond merge + secret flip + unpin --cached):
-  (1) SQL-side aggregation in generate.py (egress fix); (2) compute map
-  tooltip profile points server-side from FULL pass history (replaces
-  thinned-frame client sampling, kills the dash gaps); (3) regeneration
-  auto-activates staged features: per-quantity map data, per-section
-  listing counts, row-level profiles (rp). Collector buffering to
-  Supabase meanwhile (BUFFER_DATABASE_URL in .env.local).
+- **OUTAGE RESOLVED (2026-11-02):** Oct 14 Neon egress-quota block ended
+  with the Nov 1 quota reset. Restore done 2026-11-02: Supabase buffer
+  merged into Neon via merge_buffer.py (753,855 snapshot rows, zero gap;
+  idempotent, re-runnable), DATABASE_URL secret flipped back to Neon,
+  dashboard.yml unpinned. Full regeneration activated the staged
+  features (per-quantity map data, listing counts, row-level profiles,
+  now on every completed game including pre-outage ones). Supabase
+  project is now disposable once Michael deletes it; BUFFER_DATABASE_URL
+  in .env.local can go with it.
+  Egress guardrail until generate.py aggregates in SQL (~200 MB of
+  egress per full run vs 5 GB/mo free): dashboard.yml refreshes data
+  Mon+Thu and commits the cache back; other days render the committed
+  cache. workflow_dispatch input refresh=full forces an on-demand data
+  refresh. Still TODO: (1) SQL-side aggregation (cuts egress ~30x,
+  restores daily refresh); (2) server-side tooltip profile points from
+  full pass history (replaces thinned-frame client sampling).
 
 - **Dashboard live (2026-10-13):** https://michaelmorningstar17.github.io/sports-tickets/
   — "when to buy Kraken tickets", two versions (index = plain advice,

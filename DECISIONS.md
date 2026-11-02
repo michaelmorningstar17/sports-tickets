@@ -48,3 +48,15 @@ Newest first. One line of context, one of why.
   block any time — collector fails loudly, fallback is headless browser.
 - **2026-09-21: track Kraken home games at listing level; away games
   event-stats only.** Why: Michael attends in Seattle; storage discipline.
+
+## 2026-11-02 — Neon restore and egress guardrail
+- Merged the Supabase outage buffer into Neon with COPY-into-temp-table +
+  INSERT ON CONFLICT DO NOTHING (merge_buffer.py, kept in repo since it is
+  idempotent and documents the operation). Weekly chunks because the
+  Supabase session pooler enforces a statement timeout on long COPYs.
+- Dashboard data refresh is Mon+Thu (plus on-demand via workflow_dispatch
+  refresh=full) rather than daily: a full generate ships ~200 MB of raw
+  rows and daily runs would blow the 5 GB/mo Neon egress quota again, as
+  it did Oct 14. Full runs commit data_cache.json back so cached renders
+  on other days serve the same data. Daily refresh returns when
+  generate.py aggregates in SQL.

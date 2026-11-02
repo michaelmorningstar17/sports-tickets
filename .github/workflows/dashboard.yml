@@ -4,10 +4,17 @@ on:
   schedule:
     - cron: "23 10 * * *"   # daily ~3:23 AM PT; GitHub may delay, a late daily refresh is fine
   workflow_dispatch:
+    inputs:
+      refresh:
+        description: "full = query the database, cached = render committed cache, auto = full on Mon/Thu only"
+        type: choice
+        default: auto
+        options: [auto, full, cached]
 
 permissions:
   pages: write
   id-token: write
+  contents: write   # full refreshes commit the updated data cache back
 
 concurrency:
   group: pages
@@ -32,12 +39,35 @@ jobs:
       - name: Generate dashboard
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        # Falls back to the committed data snapshot when the database is
-        # unreachable (e.g. quota block), so UI changes still deploy.
-        # OUTAGE PIN until Nov 1: DATABASE_URL points at the thin buffer DB, so
-        # render only from the committed cache. Restore the fallback line after
-        # the Neon merge: python dashboard/generate.py || python dashboard/generate.py --cached
-        run: python dashboard/generate.py --cached
+        # A full generate pulls every snapshot row (~200MB of Neon egress), so
+        # on the free 5GB/month we refresh data twice a week (Mon/Thu) and
+        # render the committed cache otherwise. Dispatch with refresh=full for
+        # an on-demand data refresh. Falls back to the cache when the database
+        # is unreachable, so UI changes still deploy. The guardrail can go once
+        # generate.py aggregates in SQL instead of shipping raw rows.
+        run: |
+          MODE="${{ inputs.refresh || 'auto' }}"
+          if [ "$MODE" = auto ]; then
+            case "$(date -u +%u)" in 1|4) MODE=full ;; *) MODE=cached ;; esac
+          fi
+          if [ "$MODE" = full ]; then
+            python dashboard/generate.py || python dashboard/generate.py --cached
+          else
+            python dashboard/generate.py --cached
+          fi
+
+      - name: Commit refreshed data cache
+        # After a full refresh, keep the committed cache current so the
+        # cached renders on other days serve the same data.
+        run: |
+          if ! git diff --quiet dashboard/data_cache.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add dashboard/data_cache.json
+            git commit -m "Refresh dashboard data cache [skip ci]"
+            git pull --rebase origin main
+            git push
+          fi
 
       - uses: actions/configure-pages@v5
 
