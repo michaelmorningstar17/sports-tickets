@@ -449,7 +449,7 @@ function mapWhenLabel(m) {
 }
 function quantiles(game) {
   const all = [];
-  game.frames.forEach(f => f.p.forEach(v => { if (v != null) all.push(v); }));
+  game.frames.forEach(f => frameVals(f).vals.forEach(v => { if (v != null) all.push(v); }));
   all.sort((a, b) => a - b);
   const q = p => all[Math.min(all.length - 1, Math.floor(p * all.length))];
   return [q(.2), q(.4), q(.6), q(.8)];
