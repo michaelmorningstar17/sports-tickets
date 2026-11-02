@@ -94,8 +94,7 @@ their final hours, updated nightly &middot; generated __GENERATED__ &middot;
     <select id="rowFrom" style="font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px"></select>
     <span style="color:var(--faint)">to</span>
     <select id="rowTo" style="font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px"></select>
-    <span id="mapQtyNote" style="display:none;font-size:12px;color:#b07500">quantity split
-      arrives with the next full data refresh (Nov 1); showing any quantity</span>
+    <span id="mapQtyNote" style="display:none;font-size:12px;color:#b07500">no per-quantity split for this selection; showing any quantity</span>
   </div>
   <div id="mapLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--mut);margin-bottom:6px"></div>
   <div id="mapTip" style="display:none;position:absolute;z-index:6;pointer-events:none;
@@ -104,7 +103,7 @@ their final hours, updated nightly &middot; generated __GENERATED__ &middot;
     font-size:12.5px;line-height:1.45;color:var(--mut)"></div>
   <svg id="arenaMap" viewBox="0 0 2560 1936" style="display:block;width:calc(100% + 36px);margin:0 -18px;height:auto" role="img"
     aria-label="Map of Climate Pledge Arena sections showing the cheapest listed price per section"></svg>
-  <p class="cap">Each green label is the best time to buy that section, matching the green bar in its hover card. The row filter applies to the hover charts. Hover or tap any section for its name and history (tap it again, or anywhere else, to put the card away): when its price floor has hit across played games, and the best time to buy it. Each marker sits at its section&rsquo;s real position in the building. Unfinished games
+  <p class="cap">Each green label is the best time to buy that section, matching the green bar in its hover card. The row filter applies to the map labels and hover charts (row view is any-quantity). Hover or tap any section for its name and history (tap it again, or anywhere else, to put the card away): when its price floor has hit across played games, and the best time to buy it. Each marker sits at its section&rsquo;s real position in the building. Unfinished games
   show the recommendation from played-game history. The season average option is the per-section median across completed regular-season home games (preseason excluded) and sharpens as the season goes on. A few sections never list on
   Gametime and don&rsquo;t appear. Arena map imagery served from Gametime.</p>
 </div>
@@ -414,12 +413,14 @@ for (let ci2 = 65; ci2 <= 90; ci2++) {
   rowSelFrom.insertAdjacentHTML('beforeend', `<option${ch === 'A' ? ' selected' : ''}>${ch}</option>`);
   rowSelTo.insertAdjacentHTML('beforeend', `<option${ch === 'Z' ? ' selected' : ''}>${ch}</option>`);
 }
-rowSelFrom.onchange = e => { ROW_FROM = e.target.value; };
-rowSelTo.onchange = e => { ROW_TO = e.target.value; };
+rowSelFrom.onchange = e => { ROW_FROM = e.target.value; drawMap(); };
+rowSelTo.onchange = e => { ROW_TO = e.target.value; drawMap(); };
 function rowActive() { return ROW_FROM !== 'A' || ROW_TO !== 'Z'; }
+function rowRange() { return ROW_FROM <= ROW_TO ? [ROW_FROM, ROW_TO] : [ROW_TO, ROW_FROM]; }
 function rowIn(r) {
   if (!r || !/^[A-Z]+$/.test(r)) return false;
-  return r >= ROW_FROM && r.charAt(0) <= ROW_TO && r <= ROW_TO + 'Z';
+  const lo = rowRange()[0], hi = rowRange()[1];
+  return r >= lo && r.charAt(0) <= hi && r <= hi + 'Z';
 }
 let MQTY = 'a';
 function frameVals(frame) {
@@ -615,10 +616,10 @@ function showMapTip(sec, i, v, grp) {
     const rprof = rowProfile(sec.id);
     if (rprof && rprof.missing) {
       prof = sectionProfile(i);
-      rowNote = '<div style="font-size:10.5px;color:#b07500;margin-top:2px">row filtering needs the next full data refresh (Nov 1); showing all rows</div>';
+      rowNote = '<div style="font-size:10.5px;color:#b07500;margin-top:2px">no row-level data for this selection; showing all rows</div>';
     } else {
       prof = rprof;
-      rowNote = '<div style="font-size:10.5px;color:var(--faint);margin-top:2px">rows ' + ROW_FROM + '-' + ROW_TO +
+      rowNote = '<div style="font-size:10.5px;color:var(--faint);margin-top:2px">rows ' + rowRange().join('-') +
         (MQTY !== 'a' ? ' \u00b7 row view is any-quantity' : '') + '</div>';
     }
   } else {
@@ -669,7 +670,7 @@ function showMapTip(sec, i, v, grp) {
         (cn == null ? '-' : cn) + '</span></div>';
     });
 
-    if (!prof.haveCounts) html += '<div style="font-size:10.5px;color:#b07500;margin-top:2px">listing counts arrive with the next full data refresh (Nov 1)</div>';
+    if (!prof.haveCounts) html += '<div style="font-size:10.5px;color:#b07500;margin-top:2px">listing counts not available for this selection</div>';
     html += rowNote;
   }
   if (!prof) {
@@ -704,7 +705,11 @@ function drawMap() {
     (MQTY !== 'a' && vb.legacy) ? 'inline' : 'none';
   MAP.sections.forEach((sec, i) => {
     const v = vals[i];
-    const prof = sectionProfile(i);
+    let prof = sectionProfile(i);
+    if (rowActive()) {
+      const rprof = rowProfile(sec.id);
+      if (!rprof || !rprof.missing) prof = rprof;
+    }
     const rec = recommendIdx(prof);
     const grp = document.createElementNS(NS, 'g');
     const W = 126, H = 56;
@@ -742,10 +747,12 @@ function drawMap() {
       grp.addEventListener('mouseleave', hideMapTip);
     }
     mapSvg.appendChild(grp);
+    if (TIP_KEY === i) showMapTip(sec, i, v, grp);
   });
   const lg = document.getElementById('mapLegend');
   lg.innerHTML = '<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#0ca30c;margin-right:5px"></span>' +
-    'Each label is that section\u2019s best time to buy (the green bar in its hover card), for the selected game or average.</span>';
+    'Each label is that section\u2019s best time to buy (the green bar in its hover card), for the selected game or average.' +
+    (rowActive() ? ' Showing rows ' + rowRange().join('-') + ' only; blank sections have nothing in those rows.' : '') + '</span>';
 }
 gameSel.onchange = e => { MG = +e.target.value; drawMap(); };
 document.getElementById('mapQty').onchange = e => { MQTY = e.target.value; drawMap(); };
